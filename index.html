@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>OSI - International Packers (PWA)</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="manifest" href="manifest.webmanifest">
@@ -11,20 +11,30 @@
   <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
   <style>
     :root { --bg:#f7f7fb; --fg:#111; --muted:#666; --primary:#0d6efd; --card:#fff; --border:#e4e7ec; }
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);}
-    .container{max-width:1100px;margin:24px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
-    .header{display:flex;gap:16px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px}
-    .header img{height:72px;object-fit:contain;border-radius:8px}
-    h1{font-size:22px;margin:0} .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);}
+    .container{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+
+    .topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .topbar button{flex:1 1 auto;min-width:160px}
+
+    .header{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap}
+    .header img{height:64px;object-fit:contain;border-radius:8px}
+    h1{font-size:20px;margin:0} .sub{color:var(--muted);font-size:13px;margin-top:4px}
+
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
     .field{display:flex;flex-direction:column;gap:6px} label{font-size:12px;color:#333}
     input, select, textarea{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:14px;background:#fff;width:100%}
     textarea{min-height:74px;resize:vertical}
+
     .section-title{font-weight:700;margin:18px 0 8px 0}
-    table{width:100%;border-collapse:collapse;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .table-wrap{width:100%;overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;min-width:760px}
     thead th{background:#f2f4f7;text-align:left;font-size:12px;padding:10px;border-bottom:1px solid var(--border)}
     tbody td{padding:8px;border-top:1px solid var(--border)}
+
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:600}
     button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
@@ -33,8 +43,27 @@
     .kpi{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
     .photo-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
     .photo-preview img{max-height:100px;border-radius:10px;border:1px solid var(--border)}
-    .topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-    @media print { .actions,.topbar{display:none} .card{box-shadow:none;border:0;padding:0} .container{max-width:100%;margin:0} }
+
+    /* Breakpoints */
+    @media (max-width: 1024px) {
+      .grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width: 640px) {
+      .grid{grid-template-columns:1fr}
+      .header{flex-direction:column;align-items:flex-start}
+      .topbar button, .actions button{flex:1 1 100%}
+      h1{font-size:18px}
+    }
+    @media (max-width: 360px) {
+      body{font-size:15px}
+      input, select, textarea{font-size:15px}
+    }
+
+    @media print {
+      .actions,.topbar{display:none}
+      .card{box-shadow:none;border:0;padding:0}
+      .container{max-width:100%;margin:0;padding:0}
+    }
   </style>
 </head>
 <body>
@@ -85,20 +114,22 @@
       <datalist id="listaEncargados"></datalist>
 
       <div class="section-title">Detalle de actividades</div>
-      <table id="tabla">
-        <thead>
-          <tr>
-            <th style="width:16%">Tarea</th>
-            <th>Descripción</th>
-            <th style="width:12%">Inicio</th>
-            <th style="width:12%">Fin</th>
-            <th style="width:18%">Empleado(s)</th>
-            <th style="width:18%">Materiales/Equipos</th>
-            <th style="width:6%"></th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table id="tabla">
+          <thead>
+            <tr>
+              <th style="width:16%">Tarea</th>
+              <th>Descripción</th>
+              <th style="width:12%">Inicio</th>
+              <th style="width:12%">Fin</th>
+              <th style="width:18%">Empleado(s)</th>
+              <th style="width:18%">Materiales/Equipos</th>
+              <th style="width:6%"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
       <div class="actions">
         <button id="btnAdd" class="primary">➕ Agregar actividad</button>
         <span class="muted">Tip: en Empleado(s) escribe varios nombres separados por coma. Sugerencias desde el catálogo.</span>
@@ -146,9 +177,9 @@
     </div>
   </div>
 
-<script src="app.js"></script>
+<script src="app.js" defer></script>
 <script>
-if ("serviceWorker" in navigator) { navigator.serviceWorker.register("./sw.js"); }
+if ("serviceWorker" in navigator) { navigator.serviceWorker.register("./sw.js", { scope: "./" }); }
 </script>
 </body>
 </html>
