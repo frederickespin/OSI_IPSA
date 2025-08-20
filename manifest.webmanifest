@@ -1,7 +1,7 @@
 {
-  "name": "OSI - International Packers",
+  "name": "OSI - International Packers (Secure)",
   "short_name": "OSI",
-  "description": "Orden de Servicio Interna (PWA) - Captura de evidencias y envío.",
+  "description": "Orden de Servicio Interna (PWA) con roles, bloqueo, checklist de personal y autosave.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

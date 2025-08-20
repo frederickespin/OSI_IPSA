@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>OSI - International Packers (PWA)</title>
+  <title>OSI - International Packers (Secure PWA)</title>
   <meta name="theme-color" content="#0d6efd">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -11,14 +11,14 @@
   <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png">
   <style>
     :root { --bg:#f7f7fb; --fg:#111; --muted:#666; --primary:#0d6efd; --card:#fff; --border:#e4e7ec; }
-    *{box-sizing:border-box}
-    html,body{margin:0;height:100%}
+    *{box-sizing:border-box} html,body{margin:0;height:100%}
     body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg);}
     .container{max-width:1100px;margin:0 auto;padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
 
-    .topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .topbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
     .topbar button{flex:1 1 auto;min-width:160px}
+    .rolepill{margin-left:auto;background:#eef2ff;border:1px solid #dfe3f0;border-radius:999px;padding:6px 10px;font-size:12px;display:inline-flex;gap:8px;align-items:center}
 
     .header{display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap}
     .header img{height:64px;object-fit:contain;border-radius:8px}
@@ -30,9 +30,9 @@
     textarea{min-height:74px;resize:vertical}
 
     .section-title{font-weight:700;margin:18px 0 8px 0}
-    .table-wrap{width:100%;overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+    .table-wrap{width:100%;overflow:auto;border-radius:12px;border:1px solid var(--border)}
     table{width:100%;border-collapse:collapse;min-width:760px}
-    thead th{background:#f2f4f7;text-align:left;font-size:12px;padding:10px;border-bottom:1px solid var(--border)}
+    thead th{background:#f2f4f7;text-align:left;font-size:12px;padding:10px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:1}
     tbody td{padding:8px;border-top:1px solid var(--border)}
 
     .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -44,26 +44,18 @@
     .photo-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
     .photo-preview img{max-height:100px;border-radius:10px;border:1px solid var(--border)}
 
-    /* Breakpoints */
-    @media (max-width: 1024px) {
-      .grid{grid-template-columns:repeat(2,1fr)}
-    }
-    @media (max-width: 640px) {
-      .grid{grid-template-columns:1fr}
-      .header{flex-direction:column;align-items:flex-start}
-      .topbar button, .actions button{flex:1 1 100%}
-      h1{font-size:18px}
-    }
-    @media (max-width: 360px) {
-      body{font-size:15px}
-      input, select, textarea{font-size:15px}
-    }
+    .lock{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);}
+    .lock.locked{background:#fff7ed;border-color:#ffd7a3}
+    .lock.unlocked{background:#ecfdf5;border-color:#a7f3d0}
 
-    @media print {
-      .actions,.topbar{display:none}
-      .card{box-shadow:none;border:0;padding:0}
-      .container{max-width:100%;margin:0;padding:0}
-    }
+    @media (max-width: 1024px) { .grid{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 640px) { .grid{grid-template-columns:1fr} .header{flex-direction:column;align-items:flex-start} .topbar button, .actions button{flex:1 1 100%} h1{font-size:18px} }
+    @media (min-width:1200px){ .container{max-width:1280px} .header img{height:80px} }
+    @media print { .actions,.topbar{display:none} .card{box-shadow:none;border:0;padding:0} .container{max-width:100%;margin:0;padding:0} }
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:50}
+    .modal{background:#fff;border:1px solid var(--border);border-radius:16px;max-width:420px;width:92%;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.1)}
+    .modal h2{margin:0 0 8px 0;font-size:18px}
+    .row{display:flex;gap:8px;flex-wrap:wrap} .row>*{flex:1 1 0}
   </style>
 </head>
 <body>
@@ -71,7 +63,9 @@
     <div class="topbar">
       <button id="btnInstall">📥 Instalar app</button>
       <button id="btnShareLink">🔗 Compartir enlace</button>
-      <span class="muted">Esta app funciona offline y puede instalarse en el teléfono.</span>
+      <a href="personal.html" style="text-decoration:none"><button>👥 Personal</button></a>
+      <button id="btnCambiarPin">🔐 Cambiar PIN</button>
+      <span class="rolepill"><span id="roleBadge">Rol: -</span> · <button id="btnCambiarRol">Cambiar</button></span>
     </div>
 
     <div class="card">
@@ -80,6 +74,7 @@
         <div>
           <h1>ORDEN DE SERVICIO INTERNA</h1>
           <div class="sub">International Packers S.R.L. · Santo Domingo, R.D. · Tel: 809-379-0303</div>
+          <div class="lock" id="lockBadge">Estado: Edición</div>
         </div>
       </div>
 
@@ -130,22 +125,22 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="actions">
+
+      <div class="actions" id="actEncargado" style="display:none">
         <button id="btnAdd" class="primary">➕ Agregar actividad</button>
-        <span class="muted">Tip: en Empleado(s) escribe varios nombres separados por coma. Sugerencias desde el catálogo.</span>
+        <button id="btnGuardar" class="primary">💾 Guardar local</button>
+        <button id="btnAsignar">✅ Asignar & Bloquear</button>
+        <button id="btnNueva">🆕 Nueva OSI</button>
       </div>
-
-      <div class="kpi">
-        <div class="pill">📋 Actividades: <span id="kpiActividades">0</span></div>
-        <div class="pill">⏱️ Duración total (hh:mm): <span id="kpiDuracion">00:00</span></div>
-      </div>
-
-      <div class="section-title">Evidencia fotográfica</div>
-      <div class="actions">
+      <div class="actions" id="actSupervisor" style="display:none">
         <input id="fileFoto" type="file" accept="image/*" capture="environment" style="display:none">
-        <button id="btnTomarFoto">📷 Tomar/Adjuntar foto</button>
+        <button id="btnTomarFoto">📷 Evidencia (obligatoria)</button>
         <button id="btnBorrarFotos">🧹 Limpiar fotos</button>
+        <button id="btnFirmarCerrar" class="primary">🖊️ Firmar & Cerrar</button>
+        <button id="btnImprimir">🖨️ Imprimir / PDF</button>
+        <button id="btnWhatsApp">🟢 WhatsApp</button>
       </div>
+
       <div id="preview" class="photo-preview"></div>
 
       <div class="section-title">Validaciones</div>
@@ -155,31 +150,30 @@
         <div class="field"><label>Observaciones</label><textarea id="observaciones" placeholder="Incidencias, retrasos, faltantes, etc."></textarea></div>
       </div>
 
-      <div class="section-title">Catálogo de personal</div>
-      <div class="actions">
-        <input type="file" id="fileCSV" accept=".csv" style="display:none">
-        <button id="btnImportar">📥 Importar catálogo (CSV)</button>
-        <button id="btnExportar">📤 Exportar catálogo (JSON)</button>
-        <button id="btnLimpiarCat">🧹 Limpiar catálogo</button>
-        <span class="muted">Formato CSV: <code>nombre,rol</code>. Ej.: <em>Juan Pérez,Supervisor</em></span>
+      <div class="kpi">
+        <div class="pill">📋 Actividades: <span id="kpiActividades">0</span></div>
+        <div class="pill">⏱️ Duración total (hh:mm): <span id="kpiDuracion">00:00</span></div>
       </div>
-
-      <div class="section-title">Acciones</div>
-      <div class="actions">
-        <button id="btnGuardar" class="primary">💾 Guardar offline</button>
-        <button id="btnEnviar">📨 Enviar</button>
-        <button id="btnWhatsApp">🟢 WhatsApp</button>
-        <button id="btnImprimir">🖨️ Imprimir / PDF</button>
-        <button id="btnNueva">🆕 Nueva OSI (autonum)</button>
-        <button id="btnLimpiar">🧹 Limpiar</button>
-      </div>
-      <div class="muted">La numeración es automática y se conserva en este dispositivo. Funciona offline y permite compartir por WhatsApp.</div>
     </div>
   </div>
 
-<script src="app.js" defer></script>
-<script>
-if ("serviceWorker" in navigator) { navigator.serviceWorker.register("./sw.js", { scope: "./" }); }
-</script>
+  <div class="overlay" id="loginOverlay" style="display:flex">
+    <div class="modal">
+      <h2>Acceso</h2>
+      <p class="muted">Selecciona tu rol e ingresa tu PIN.</p>
+      <div class="row" style="margin:8px 0">
+        <button id="loginEncargado">Entrar como Encargado</button>
+        <button id="loginSupervisor">Entrar como Supervisor</button>
+      </div>
+      <div class="row">
+        <input id="pinInput" type="password" inputmode="numeric" placeholder="PIN (por defecto: Encargado 1111, Supervisor 2222)">
+        <button id="btnEntrar" class="primary">Entrar</button>
+      </div>
+      <div class="muted" style="margin-top:8px">Recomendación: cambia los PIN desde <em>🔐 Cambiar PIN</em>.</div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+  <script> if ("serviceWorker" in navigator) { navigator.serviceWorker.register("./sw.js", { scope: "./" }); } </script>
 </body>
 </html>
