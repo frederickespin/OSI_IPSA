@@ -2,6 +2,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const $ = (id) => document.getElementById(id);
 
+  // Iniciar control de inactividad (1 minuto) y cierre en navegador
+  OSI_AUTH.init({ idleMs: 60000, heartbeatMs: 15000, endOnClose: true });
+
   // Util
   const todayISO = () => new Date().toISOString().slice(0,10);
   const pad = (n, w) => String(n).padStart(w,'0');
@@ -54,8 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('PIN actualizado.');
   }
 
-  // Rol
-  let ROLE = sessionStorage.getItem('osi-role') || null;
+  // Rol y Usuario (vía auth.js)
+  let ROLE = sessionStorage.getItem('osi-role') || ((OSI_AUTH.getSession()||{}).role) || null;
+  let USER = sessionStorage.getItem('osi-user') || ((OSI_AUTH.getSession()||{}).user) || '';
 
   // Numeración
   const getSeq = () => parseInt(localStorage.getItem('osi-seq')||'1',10);
@@ -63,19 +67,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const asignarNumero = () => { $('numeroOrden').value = 'OSI-' + pad(getSeq(), 5); };
   const nuevaOSI = () => { setSeq(getSeq()+1); limpiar(true); asignarNumero(); setLocked(false); };
 
-  // Catálogo (solo activos)
+  // Catálogo
   const getCatalogo = () => { try { return JSON.parse(localStorage.getItem('osi-catalog')||'[]'); } catch(e){ return []; } };
   const actualizarDatalists = () => {
     const cat = getCatalogo().filter(p=>p.activo!==false);
-    const dlPers = $('listaPersonal'), dlSup = $('listaSupervisores'), dlEnc = $('listaEncargados');
-    dlPers.innerHTML = dlSup.innerHTML = dlEnc.innerHTML = '';
+    const dlPers = $('listaPersonal'), dlSup = $('listaSupervisores'), dlEnc = $('listaEncargados'), dlCrea = $('listaCreadores');
+    dlPers.innerHTML = dlSup.innerHTML = dlEnc.innerHTML = dlCrea.innerHTML = '';
     const nombresUnicos = [...new Set(cat.map(p => p.nombre).filter(Boolean))];
     nombresUnicos.forEach(n => { const o = document.createElement('option'); o.value = n; dlPers.appendChild(o); });
     const sup = cat.filter(p => /supervisor|jefe|gerente/i.test(p.rol||''));
     const enc = cat.filter(p => /encargado|almac[eé]n/i.test(p.rol||''));
+    const creadores = cat.filter(p => p.creadorOSI===true);
     [...new Set(sup.map(p=>p.nombre))].forEach(n=>{ const o=document.createElement('option');o.value=n;dlSup.appendChild(o); });
     [...new Set(enc.map(p=>p.nombre))].forEach(n=>{ const o=document.createElement('option');o.value=n;dlEnc.appendChild(o); });
+    [...new Set(creadores.map(p=>p.nombre))].forEach(n=>{ const o=document.createElement('option');o.value=n;dlCrea.appendChild(o); });
+    poblarUsuarioSelect();
   };
+
+  function poblarUsuarioSelect(){
+    const sel = $('usuarioSelect'); if(!sel) return;
+    const cat = getCatalogo().filter(p=>p.activo!==false);
+    let lista = [];
+    let hint = 'Filtrado por rol';
+    if(ROLE==='encargado'){
+      lista = cat.filter(p=>p.creadorOSI===true);
+      hint = 'Encargados marcados como Creador OSI';
+    } else if(ROLE==='supervisor'){
+      lista = cat.filter(p=>/supervisor|jefe|gerente/i.test(p.rol||''));
+      hint = 'Personal con rol Supervisor';
+    } else {
+      lista = [];
+      hint = 'Selecciona un rol para ver usuarios';
+    }
+    sel.innerHTML = '<option value="">Seleccionar…</option>' + lista.map(p=>`<option ${USER===p.nombre?'selected':''}>${p.nombre}</option>`).join('');
+    $('usuarioHint').textContent = hint;
+  }
 
   // Tabla y KPIs
   const tbody = $('tbody');
@@ -118,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     kpiDuracion.textContent = hh + ':' + mm;
   };
 
-  // Fotos (requeridas para cerrar)
+  // Fotos
   const inputFoto = $('fileFoto');
   const btnFoto = $('btnTomarFoto');
   const btnBorrarFotos = $('btnBorrarFotos');
@@ -187,6 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
       firmaEncargado: $('firmaEncargado').value.trim(),
       observaciones: $('observaciones').value.trim(),
       fotos: fotos,
+      usuario: USER,
       kpis: { actividades: rows.length, duracionTotal: $('kpiDuracion').textContent },
       meta: getMeta()
     });
@@ -239,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
     tableInputs.forEach(inp => { inp.disabled = m.locked ? true : (ROLE!=='encargado'); });
     document.getElementById('actEncargado').style.display = (ROLE==='encargado') ? 'flex' : 'none';
     document.getElementById('actSupervisor').style.display = (ROLE==='supervisor') ? 'flex' : 'none';
+    poblarUsuarioSelect();
   }
 
   // Compartir
@@ -252,7 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
       supervisor: d.supervisor || undefined,
       encargado: d.encargado || undefined,
       tipoTarea: d.tipoTarea || undefined,
-      estado: d.estado || undefined
+      estado: d.estado || undefined,
+      usuario: USER || undefined
     };
     const b64 = btoa(JSON.stringify(payload));
     const base = location.href.split('?')[0];
@@ -261,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const shareWhatsApp = () => {
     const link = buildShareURL();
     const d = collectData();
-    const msg = `OSI: ${d.numeroOrden}\nÁrea: ${d.area}\nFecha: ${d.fechaEmision}\nPrioridad: ${d.prioridad}\nSupervisor: ${d.supervisor}\nLink: ${link}`;
+    const msg = `OSI: ${d.numeroOrden}\nÁrea: ${d.area}\nFecha: ${d.fechaEmision}\nPrioridad: ${d.prioridad}\nSupervisor: ${d.supervisor}\nUsuario: ${USER||'-'}\nLink: ${link}`;
     const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
@@ -274,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnNueva = $('btnNueva'); if(btnNueva) btnNueva.addEventListener('click', () => nuevaOSI());
   const btnAsignar = $('btnAsignar'); if(btnAsignar) btnAsignar.addEventListener('click', () => {
     if(ROLE!=='encargado') return;
+    if(!USER) return alert('Selecciona tu usuario (Encargado) en la barra ROLES.');
     setLocked(true,'encargado'); alert('Asignada y bloqueada. El supervisor puede continuar.');
   });
   const btnFirmar = $('btnFirmarCerrar'); if(btnFirmar) btnFirmar.addEventListener('click', () => {
@@ -282,10 +312,24 @@ document.addEventListener('DOMContentLoaded', () => {
     $('estado').value = 'Completada'; setClosed(); setLocked(true,'supervisor'); guardarLocal(); alert('Orden firmada y cerrada.');
   });
 
+  // Select de usuario
+  const usuarioSelect = $('usuarioSelect');
+  if(usuarioSelect){
+    usuarioSelect.addEventListener('change', () => {
+      USER = usuarioSelect.value || '';
+      sessionStorage.setItem('osi-user', USER);
+      OSI_AUTH.updateUser(USER);
+      // Contamos el cambio como actividad
+      OSI_AUTH.refresh();
+      autoSave();
+    });
+  }
+
+  // Autosave
   document.querySelectorAll('input, select, textarea').forEach(el => {
     if(el.id==='numeroOrden') return;
-    el.addEventListener('input', autoSave);
-    el.addEventListener('change', autoSave);
+    el.addEventListener('input', ()=>{ OSI_AUTH.refresh(); autoSave(); });
+    el.addEventListener('change', ()=>{ OSI_AUTH.refresh(); autoSave(); });
   });
 
   // PWA install/share
@@ -305,25 +349,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Rol & PIN UI
+  // Rol & PIN UI — usa sesión si existe
   const roleBadge = $('roleBadge');
-  function setRole(r){ ROLE = r; sessionStorage.setItem('osi-role', r); roleBadge.textContent = 'Rol: ' + (r==='encargado'?'Encargado':'Supervisor'); syncLockToInputs(); }
+  function setRole(r){ ROLE = r; sessionStorage.setItem('osi-role', r); roleBadge.textContent = 'ROLES'; syncLockToInputs(); OSI_AUTH.refresh(); }
+
   let selectedRole = 'encargado';
-  document.getElementById('loginEncargado').addEventListener('click', ()=>{ selectedRole='encargado'; });
-  document.getElementById('loginSupervisor').addEventListener('click', ()=>{ selectedRole='supervisor'; });
-  document.getElementById('btnEntrar').addEventListener('click', async () => {
+  $('loginEncargado').addEventListener('click', ()=>{ selectedRole='encargado'; });
+  $('loginSupervisor').addEventListener('click', ()=>{ selectedRole='supervisor'; });
+  $('btnEntrar').addEventListener('click', async () => {
     const pin = document.getElementById('pinInput').value.trim();
     if(!pin) return alert('Ingresa PIN');
     const ok = await verifyPin(selectedRole, pin);
     if(!ok) return alert('PIN incorrecto');
     setRole(selectedRole);
+    OSI_AUTH.startSession(selectedRole, USER, 1/60); // TTL inicial 1 min; luego se renueva con actividad
     document.getElementById('loginOverlay').style.display='none';
+    actualizarDatalists();
   });
-  document.getElementById('btnCambiarRol').addEventListener('click', ()=>{
+  $('btnCambiarRol').addEventListener('click', ()=>{
     document.getElementById('loginOverlay').style.display='flex';
     document.getElementById('pinInput').value='';
   });
-  document.getElementById('btnCambiarPin').addEventListener('click', async () => {
+  $('btnCambiarPin').addEventListener('click', async () => {
     if(!ROLE) return alert('Primero inicia sesión');
     await changePin(ROLE);
   });
@@ -331,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Atajo escritorio: Ctrl/Cmd + S
   document.addEventListener('keydown', (e) => {
     const isSave = (e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S');
-    if(isSave){ e.preventDefault(); if(ROLE==='encargado') document.getElementById('btnGuardar').click(); }
+    if(isSave){ e.preventDefault(); if(ROLE==='encargado') document.getElementById('btnGuardar').click(); OSI_AUTH.refresh(); }
   });
 
   // Init
@@ -359,10 +406,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if(d.encargado) document.getElementById('encargado').value = d.encargado;
         if(d.tipoTarea) document.getElementById('tipoTarea').value = d.tipoTarea;
         if(d.estado) document.getElementById('estado').value = d.estado;
+        if(d.usuario) { 
+          USER = d.usuario; 
+          sessionStorage.setItem('osi-user', USER); 
+          OSI_AUTH.updateUser(USER);
+        }
       }catch(_){}
     }
   })();
 
-  // Overlay login
-  document.getElementById('loginOverlay').style.display='flex';
+  // Mostrar overlay si no hay sesión
+  (function ensureSession(){
+    const s = OSI_AUTH.getSession();
+    if(s && s.role){
+      ROLE = s.role; USER = s.user||'';
+      sessionStorage.setItem('osi-role', ROLE);
+      sessionStorage.setItem('osi-user', USER);
+      OSI_AUTH.refresh(); // renueva expiración
+      document.getElementById('loginOverlay').style.display='none';
+      syncLockToInputs();
+      poblarUsuarioSelect();
+    }else{
+      document.getElementById('loginOverlay').style.display='flex';
+    }
+  })();
+
+  // Si la sesión termina, mostrar login de inmediato
+  window.addEventListener('osi:session-ended', ()=>{
+    alert('Sesión finalizada por inactividad o cierre del navegador.');
+    document.getElementById('loginOverlay').style.display='flex';
+  });
 });

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Configuración — OSI</title>
+  <style>
+    :root{ --bg:#f7f7fb; --fg:#111; --muted:#666; --card:#fff; --border:#e4e7ec; --primary:#0d6efd; }
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:#111;}
+    .container{max-width:720px;margin:0 auto;padding:16px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px}
+    h1{font-size:20px;margin:0 0 12px 0}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:12px 14px;cursor:pointer;font-weight:600;text-align:left}
+    button.primary{background:#0d6efd;color:#fff;border-color:#0d6efd;text-align:center}
+    .muted{color:var(--muted);font-size:12px}
+    a{text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Configuración</h1>
+      <div class="grid">
+        <button id="btnInstall">📥 Instalar app</button>
+        <button id="btnShareLink">🔗 Compartir enlace</button>
+        <a href="personal.html"><button>👥 Personal</button></a>
+        <button id="btnCambiarPin">🔐 Cambiar PIN</button>
+        <button id="btnCerrarSesion">🚪 Cerrar sesión</button>
+        <a href="index.html"><button class="primary">← Volver al formulario</button></a>
+      </div>
+      <p class="muted" style="margin-top:10px">
+        La sesión se mantiene activa **mientras haya actividad**. Si no hay actividad, se cierra en **1 minuto**.<br>
+        Si cierras el navegador, la sesión se intentará cerrar de inmediato.
+      </p>
+    </div>
+  </div>
+  <script src="auth.js"></script>
+  <script src="settings.js" defer></script>
+</body>
+</html>

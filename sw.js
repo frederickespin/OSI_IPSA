@@ -1,7 +1,10 @@
-const CACHE = "osi-cache-v6";
+const CACHE = "osi-cache-v9";
 const ASSETS = [
-  "./","./index.html","./app.js","./personal.html","./personal.js",
-  "./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png",
+  "./","./index.html","./app.js","./auth.js",
+  "./personal.html","./personal.js",
+  "./settings.html","./settings.js",
+  "./manifest.webmanifest",
+  "./icons/icon-192.png","./icons/icon-512.png",
   "./icons/icon-180.png","./icons/icon-32.png","./icons/icon-16.png"
 ];
 self.addEventListener("install", (e) => {
