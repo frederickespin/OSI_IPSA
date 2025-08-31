@@ -1,28 +1,26 @@
-const CACHE = "osi-cache-v9";
-const ASSETS = [
-  "./","./index.html","./app.js","./auth.js",
-  "./personal.html","./personal.js",
-  "./settings.html","./settings.js",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png","./icons/icon-512.png",
-  "./icons/icon-180.png","./icons/icon-32.png","./icons/icon-16.png"
-];
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
+
+const CACHE = "osi-cache-v9r2";
+self.addEventListener("install", (e) => {{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll([
+    "./","./index.html?v=9r2","./app.js?v=9r2","./auth.js?v=9r2",
+    "./manifest.webmanifest","./icons/icon-192.png","./icons/icon-512.png","./icons/icon-180.png","./icons/icon-32.png","./icons/icon-16.png"
+  ])));
   self.skipWaiting();
-});
-self.addEventListener("activate", (e) => {
+}});
+self.addEventListener("activate", (e) => {{
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
   self.clients.claim();
-});
-self.addEventListener("fetch", (e) => {
+}});
+self.addEventListener("fetch", (e) => {{
+  const url = new URL(e.request.url);
+  if (url.origin === self.location.origin && (url.pathname.endsWith(".html") || url.pathname.endsWith(".js"))) {{
+    url.searchParams.set("v", "9r2");
+  }}
+  const req = new Request(url, {{ cache: "no-store" }});
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(resp => {
-      if(e.request.method === "GET" && resp && resp.status === 200 && e.request.url.startsWith(self.location.origin)){
-        const clone = resp.clone();
-        caches.open(CACHE).then(c=>c.put(e.request, clone));
-      }
+    caches.match(req).then(cached => cached || fetch(req).then(resp => {{
+      if(resp && resp.ok) caches.open(CACHE).then(c=>c.put(req, resp.clone()));
       return resp;
-    }).catch(()=>cached))
+    }}).catch(()=>cached))
   );
-});
+}});

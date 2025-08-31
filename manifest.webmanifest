@@ -1,8 +1,8 @@
 {
   "name": "OSI - International Packers (Secure)",
   "short_name": "OSI",
-  "description": "Orden de Servicio Interna (PWA) con roles, bloqueo, checklist de personal y autosave.",
-  "start_url": "./index.html",
+  "description": "Orden de Servicio Interna (PWA) — build anti-caché",
+  "start_url": "./index.html?v=9r2",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0d6efd",
