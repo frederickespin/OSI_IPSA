@@ -20,7 +20,7 @@
   function endSession(){ localStorage.removeItem(SESSION_KEY); localStorage.removeItem(LAST_ACTIVE_KEY); sessionStorage.removeItem('osi-role'); sessionStorage.removeItem('osi-user'); try{ global.dispatchEvent(new CustomEvent('osi:session-ended')); }catch(_){ } }
   function init(userCfg){
     cfg = Object.assign({}, cfg, userCfg||{});
-    ['click','keydown','mousemove','touchstart','focus','visibilitychange'].forEach(ev=>global.addEventListener(ev, ()=>{ if(!document.hidden) touch(); }, {passive:true}));
+    ['click','keydown','mousemove','touchstart','focus','visibilitychange','scroll'].forEach(ev=>global.addEventListener(ev, ()=>{ if(!document.hidden) touch(); }, {passive:true}));
     setInterval(()=>{ const s=getSession(); if(s && now() > (s.expires||0)) endSession(); }, 5000);
     if(cfg.endOnClose){ global.addEventListener('beforeunload', ()=>{ try{ endSession(); }catch(_){ } }); }
   }
