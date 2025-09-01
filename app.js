@@ -184,5 +184,5 @@ document.addEventListener('DOMContentLoaded',()=>{
   let role='encargado'; const badge=$('badgeRol');
   document.getElementById('asEnc').onclick=()=>role='encargado'; document.getElementById('asSup').onclick=()=>role='supervisor';
   document.getElementById('ok').onclick=async()=>{ const ok=await verify(role,$('#pin').value||''); if(!ok) return alert('PIN incorrecto'); OSI_AUTH.startSession(role,'',1/60); document.getElementById('login').style.display='none'; badge.textContent='ROL: '+role.toUpperCase(); };
-  const s = OSI_AUTH.getSession(); if(!(s&&s.role)) document.getElementById('login').style.display='flex'; else badge.textContent='ROL: '+(s.role||'').toUpperCase();
+  try{OSI_AUTH.startSession('encargado','',60); badge.textContent='ROL: ENCARGADO'; document.getElementById('login').style.display='none';}catch(e){ console.warn(e);}
 });
