@@ -3,15 +3,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-  // === Fecha automática (robusta) ===
-  const todayLocal = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
-  const setToday = () => { const val=todayLocal(); if($('#fecha').value!==val) $('#fecha').value = val; };
-  setToday(); // al cargar
-  $('#fecha').setAttribute('readonly','readonly');
-  // Evitar cambios manuales: si alguien intenta cambiar, volvemos a hoy
-  ['change','input','blur'].forEach(ev=>$('#fecha').addEventListener(ev, setToday));
-  // Segundo chequeo tardío (por si el navegador difiere el render del input date)
-  setTimeout(setToday, 200);
+  // === Fecha automática robusta ===
+  const todayStr = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
+  const setToday = ()=>{ const t=todayStr(); const f=$('#fecha'); f.value=t; f.setAttribute('min',t); f.setAttribute('max',t); };
+  setToday(); ['change','input','blur','focus'].forEach(ev=>$('#fecha').addEventListener(ev, setToday));
+  setTimeout(setToday, 150);
 
   // === Numeración ===
   const pad=(n,w)=>String(n).padStart(w,'0');
@@ -19,7 +15,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function asignarNumero(){ $('#num').value='OSI-'+pad(getSeq(),5) }
   asignarNumero();
 
-  // === Catálogo v2 con seed si está vacío ===
+  // === Catálogo v2 (seed si vacío) ===
   function getCat(){ return ls('osi-catalog-v2')||[] }
   function setCat(a){ ls('osi-catalog-v2', a) }
   if(!ls('osi-catalog-v2')){
@@ -30,9 +26,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]);
   }
 
-  // === Broadcast de cambios de catálogo ===
-  const bc = ('BroadcastChannel' in window)? new BroadcastChannel('osi'): null;
-  if(bc){ bc.onmessage = (ev)=>{ if(ev && ev.data==='cat-updated'){ refreshAll(); } }; }
+  // === Notificación cruzada ===
+  const notify=()=>{ if('BroadcastChannel' in window){ try{const bc=new BroadcastChannel('osi'); bc.postMessage('cat-updated'); bc.close(); }catch(_){}} try{localStorage.setItem('osi-cat-ping', String(Date.now()));}catch(_){} };
+  const bc=('BroadcastChannel' in window)? new BroadcastChannel('osi') : null;
+  if(bc){ bc.onmessage=(ev)=>{ if(ev && ev.data==='cat-updated'){ refreshAll(); } }; }
   window.addEventListener('storage',(e)=>{ if(e.key==='osi-cat-ping'){ refreshAll(); }});
 
   // === Selects por rol ===
@@ -48,7 +45,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <label style="display:block;padding:6px 8px;border-bottom:1px solid #eee">
         <input type="checkbox" data-num="${p.num||''}" ${p.picked?'checked':''}>
         ${p.num? `<strong>${p.num}</strong> — `:''}${p.nombre} <span style="color:#667085">(${(p.roles||[]).join(', ')})</span>
-      </label>`).join('') : '<div class="sub">No hay operarios activos. Gestiona el personal en Configuración.</div>';
+      </label>`).join('') : '<div class="sub">No hay operarios activos. Usa “➕ Añadir personal”.</div>';
   }
   function showAsignados(){
     const cat=getCat().filter(p=>p.picked);
@@ -58,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function refreshAll(){ refreshRoleSelects(); renderChecks(); showAsignados(); }
   refreshAll();
 
-  // === Modal de selección ===
+  // === Modal selección de operarios ===
   const modal=$('modalAsignar');
   $('btnAsignar').onclick=()=>{ modal.style.display='flex'; renderChecks(); };
   $('selCerrar').onclick=()=>{ modal.style.display='none'; };
@@ -67,6 +64,63 @@ document.addEventListener('DOMContentLoaded',()=>{
     const num=e.target.getAttribute('data-num'); if(num===null) return;
     const cat=getCat(); const idx = cat.findIndex(p=>(p.num||'')===num);
     if(idx>=0){ cat[idx].picked = e.target.checked; setCat(cat); }
+  });
+
+  // === Modal rápido de alta/edición ===
+  const qm=$('modalQuickPersonal'), qTb=$('qTb');
+  function qRender(){
+    const cat=getCat();
+    qTb.innerHTML='';
+    cat.forEach((p,i)=>{
+      const tr=document.createElement('tr'); tr.innerHTML=`
+        <td><input data-i="${i}" data-k="num" value="${p.num||''}"></td>
+        <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
+        <td>
+          <label><input type="checkbox" data-i="${i}" data-role="Encargado" ${ (p.roles||[]).includes('Encargado')? 'checked':'' }> Encargado</label>
+          <label><input type="checkbox" data-i="${i}" data-role="Supervisor" ${ (p.roles||[]).includes('Supervisor')? 'checked':'' }> Supervisor</label>
+          <label><input type="checkbox" data-i="${i}" data-role="Operario" ${ (p.roles||[]).includes('Operario')? 'checked':'' }> Operario</label>
+          <label><input type="checkbox" data-i="${i}" data-role="Administración" ${ (p.roles||[]).includes('Administración')? 'checked':'' }> Administración</label>
+        </td>
+        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false? 'checked':''}></td>
+        <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}">Eliminar</button></td>`;
+      qTb.appendChild(tr);
+    });
+  }
+  $('btnQuickAdd').onclick=()=>{ qm.style.display='flex'; qRender(); };
+  $('qCerrar').onclick=()=>{ qm.style.display='none'; };
+
+  $('qAgregar').onclick=()=>{
+    const num=$('qNum').value.trim(), nombre=$('qNombre').value.trim();
+    const roles=[...document.querySelectorAll('.qRole:checked')].map(el=>el.value);
+    if(!num || !nombre || roles.length===0){ alert('Número, Nombre y al menos un Rol son obligatorios'); return; }
+    const cat=getCat(); if(cat.some(p=>(p.num||'')===num)){ alert('Ya existe un empleado con ese número'); return; }
+    cat.push({num, nombre, roles, activo:true, picked:false});
+    setCat(cat); qRender(); refreshAll();
+    $('qNum').value=''; $('qNombre').value=''; document.querySelectorAll('.qRole:checked').forEach(el=>el.checked=false);
+  };
+
+  document.addEventListener('change',(e)=>{
+    const i=e.target.getAttribute('data-i'); if(i===null) return;
+    const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
+    if(e.target.hasAttribute('data-k')){
+      const k=e.target.getAttribute('data-k');
+      if(e.target.type==='checkbox') cat[idx][k]=e.target.checked; else cat[idx][k]=e.target.value;
+      setCat(cat); refreshAll();
+    } else if(e.target.hasAttribute('data-role')){
+      const role=e.target.getAttribute('data-role');
+      const roles = new Set(cat[idx].roles||[]);
+      if(e.target.checked) roles.add(role); else roles.delete(role);
+      cat[idx].roles = Array.from(roles);
+      setCat(cat); refreshAll();
+    }
+  });
+
+  document.addEventListener('click',(e)=>{
+    const i=e.target.getAttribute('data-i'); if(i===null) return;
+    const act=e.target.getAttribute('data-act'); const cat=getCat(); const idx=parseInt(i,10);
+    if(act==='del'){ if(!confirm('Eliminar a '+(cat[idx].num? cat[idx].num+' — ':'')+(cat[idx].nombre||'')+'?')) return;
+      cat.splice(idx,1); setCat(cat); qRender(); refreshAll(); }
+    if(act==='dup'){ const copy=Object.assign({},cat[idx],{num:(cat[idx].num||'')+'-copia'}); cat.push(copy); setCat(cat); qRender(); refreshAll(); }
   });
 
   // === Materiales ===
@@ -114,152 +168,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // === Forzar refresco caché ===
   document.getElementById('force').onclick=async(e)=>{ e.preventDefault(); try{ if('caches'in window){const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k)));} if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister()));} }catch(_){}
-    location.href='index.html?v=22s6&updated='+Date.now();
+    location.href='index.html?v=22s7&updated='+Date.now();
   };
-<script>
-// === PARCHE FECHA + PERSONAL (pegado al final de app.js) ===
-(function(){
-  // ---- FECHA DEL DÍA (auto y bloqueada a hoy) ----
-  function today(){ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`;}
-  const fecha = document.getElementById('fecha');
-  if (fecha) {
-    const setToday=()=>{ const t=today(); fecha.value=t; fecha.min=t; fecha.max=t; };
-    setToday(); ['change','input','blur','focus'].forEach(ev=>fecha.addEventListener(ev,setToday));
-    setTimeout(setToday,150);
-  }
-
-  // ---- Helpers de almacenamiento ----
-  const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
-  function getCat(){ return ls('osi-catalog-v2')||[] }
-  function setCat(a){
-    ls('osi-catalog-v2', a);
-    try{ localStorage.setItem('osi-cat-ping', String(Date.now())); }catch(e){}
-    if('BroadcastChannel' in window){ try{ const bc=new BroadcastChannel('osi'); bc.postMessage('cat-updated'); bc.close(); }catch(e){} }
-  }
-  if(!ls('osi-catalog-v2')){
-    setCat([
-      {num:'E-0001',nombre:'Ana Encargada',roles:['Encargado'],activo:true},
-      {num:'S-0001',nombre:'Samuel Supervisor',roles:['Supervisor'],activo:true},
-      {num:'O-0001',nombre:'Olga Operaria',roles:['Operario'],activo:true},
-    ]);
-  }
-
-  // ---- Botón "➕ Añadir personal" en la pantalla principal ----
-  const btnAsignar = document.getElementById('btnAsignar');
-  if (btnAsignar && !document.getElementById('btnQuickAdd')) {
-    const add = document.createElement('button');
-    add.id='btnQuickAdd'; add.textContent='➕ Añadir personal';
-    btnAsignar.parentElement.insertBefore(add, btnAsignar.nextSibling);
-    add.addEventListener('click', ()=> openQuickModal());
-  }
-
-  // ---- Modal rápido (desplegable) para crear/editar personal ----
-  function ensureQuickModal(){
-    if(document.getElementById('modalQuickPersonal')) return;
-    const html = `
-    <div id="modalQuickPersonal" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:90">
-      <div style="background:#fff;border:1px solid #e4e7ec;border-radius:12px;max-width:900px;width:94%;padding:16px">
-        <h3 style="margin:0 0 8px 0">Añadir / editar personal</h3>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px">
-          <input id="qNum" placeholder="Número de empleado">
-          <input id="qNombre" placeholder="Nombre y apellido">
-          <div>
-            <label><input type="checkbox" class="qRole" value="Encargado"> Encargado</label><br>
-            <label><input type="checkbox" class="qRole" value="Supervisor"> Supervisor</label><br>
-            <label><input type="checkbox" class="qRole" value="Operario"> Operario</label><br>
-            <label><input type="checkbox" class="qRole" value="Administración"> Administración</label>
-          </div>
-          <button id="qAgregar">Agregar</button>
-        </div>
-        <table style="width:100%;border-collapse:collapse;margin-top:12px">
-          <thead><tr><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th><th>Acciones</th></tr></thead>
-          <tbody id="qTb"></tbody>
-        </table>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button id="qCerrar">Cerrar</button>
-        </div>
-      </div>
-    </div>`;
-    const wrap = document.createElement('div'); wrap.innerHTML=html; document.body.appendChild(wrap.firstElementChild);
-  }
-  function qRender(){
-    const qTb = document.getElementById('qTb'); if(!qTb) return;
-    qTb.innerHTML='';
-    getCat().forEach((p,i)=>{
-      const tr=document.createElement('tr'); tr.innerHTML = `
-        <td><input data-i="${i}" data-k="num" value="${p.num||''}"></td>
-        <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
-        <td>
-          <label><input type="checkbox" data-i="${i}" data-role="Encargado" ${ (p.roles||[]).includes('Encargado')?'checked':'' }> Encargado</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Supervisor" ${ (p.roles||[]).includes('Supervisor')?'checked':'' }> Supervisor</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Operario" ${ (p.roles||[]).includes('Operario')?'checked':'' }> Operario</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Administración" ${ (p.roles||[]).includes('Administración')?'checked':'' }> Administración</label>
-        </td>
-        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
-        <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}">Eliminar</button></td>`;
-      qTb.appendChild(tr);
-    });
-  }
-  function refreshSelectors(){
-    const fill=(id,role)=>{
-      const sel=document.getElementById(id); if(!sel) return;
-      const cat=getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role));
-      sel.innerHTML='<option value="">—</option>'+cat.map(p=>`<option value="${p.num||p.nombre}">${p.num? p.num+' — ':''}${p.nombre}</option>`).join('');
-    };
-    fill('encargado','Encargado'); fill('supervisor','Supervisor');
-  }
-  function refreshOperarios(){
-    const list=document.getElementById('listChecks'); if(!list) return;
-    const cat=getCat().filter(p=>p.activo!==false && (p.roles||[]).includes('Operario'));
-    list.innerHTML = cat.length? cat.map(p=>`<label style="display:block;padding:6px 8px;border-bottom:1px solid #eee">
-      <input type="checkbox" data-num="${p.num||''}" ${p.picked?'checked':''}>
-      ${p.num? `<strong>${p.num}</strong> — `:''}${p.nombre} <span style="color:#667085">(${(p.roles||[]).join(', ')})</span>
-    </label>`).join('') : '<div class="sub">No hay operarios activos. Usa “➕ Añadir personal”.</div>';
-  }
-  function openQuickModal(){
-    ensureQuickModal(); qRender();
-    const m=document.getElementById('modalQuickPersonal');
-    m.style.display='flex';
-    document.getElementById('qCerrar').onclick=()=>{ m.style.display='none'; };
-    document.getElementById('qAgregar').onclick=()=>{ 
-      const num=document.getElementById('qNum').value.trim();
-      const nombre=document.getElementById('qNombre').value.trim();
-      const roles=[...document.querySelectorAll('.qRole:checked')].map(el=>el.value);
-      if(!num||!nombre||roles.length===0){ alert('Número, Nombre y al menos un Rol son obligatorios'); return; }
-      const cat=getCat(); if(cat.some(p=>(p.num||'')===num)){ alert('Ya existe un empleado con ese número'); return; }
-      cat.push({num,nombre,roles,activo:true,picked:false}); setCat(cat); qRender(); refreshSelectors(); refreshOperarios();
-      document.getElementById('qNum').value=''; document.getElementById('qNombre').value='';
-      document.querySelectorAll('.qRole:checked').forEach(el=>el.checked=false);
-    };
-    // Edición en línea / duplicar / eliminar
-    m.addEventListener('change',(e)=>{
-      const i=e.target.getAttribute('data-i'); if(i===null) return;
-      const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
-      if(e.target.hasAttribute('data-k')){
-        const k=e.target.getAttribute('data-k');
-        if(e.target.type==='checkbox') cat[idx][k]=e.target.checked; else cat[idx][k]=e.target.value;
-        setCat(cat);
-      } else if(e.target.hasAttribute('data-role')){
-        const role=e.target.getAttribute('data-role');
-        const roles=new Set(cat[idx].roles||[]);
-        if(e.target.checked) roles.add(role); else roles.delete(role);
-        cat[idx].roles=Array.from(roles); setCat(cat);
-      }
-      refreshSelectors(); refreshOperarios();
-    });
-    m.addEventListener('click',(e)=>{
-      const i=e.target.getAttribute('data-i'); if(i===null) return;
-      const act=e.target.getAttribute('data-act'); const cat=getCat(); const idx=parseInt(i,10);
-      if(act==='del'){ if(!confirm('Eliminar a '+(cat[idx].num||'')+' — '+(cat[idx].nombre||'')+'?')) return;
-        cat.splice(idx,1); setCat(cat); qRender(); refreshSelectors(); refreshOperarios(); }
-      if(act==='dup'){ const copy=Object.assign({},cat[idx],{num:(cat[idx].num||'')+'-copia'}); cat.push(copy); setCat(cat); qRender(); }
-    });
-  }
-
-  // Primera carga: refrescar listas
-  refreshSelectors(); refreshOperarios();
-})();
-</script>
 
   // === Login (PIN) ===
   const enc=(s)=>new TextEncoder().encode(s);

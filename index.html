@@ -3,7 +3,7 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — International Packers (v22s6)</title>
+<title>OSI — International Packers (v22s7)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d6efd">
 <style>
@@ -31,7 +31,7 @@
   .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3538cd;font-size:12px;font-weight:700}
   @media (max-width: 900px){.grid4{grid-template-columns:repeat(2,1fr)}}
   @media (max-width: 640px){.grid4,.grid2{grid-template-columns:1fr} .header{grid-template-columns:1fr;gap:10px} .header img{height:64px}}
-  @media print{.actions,.meta,#login,#modalAsignar{display:none} .container{max-width:100%;padding:0} .card{border:0;box-shadow:none;padding:0} }
+  @media print{.actions,.meta,#login,#modalAsignar,#modalQuickPersonal{display:none} .container{max-width:100%;padding:0} .card{border:0;box-shadow:none;padding:0} }
 </style>
 </head><body>
   <div class="container">
@@ -70,6 +70,7 @@
       <div class="section-title">Personal asignado (Operarios)</div>
       <div class="actions">
         <button id="btnAsignar">👥 Seleccionar personal</button>
+        <button id="btnQuickAdd">➕ Añadir personal</button>
         <span id="asignadosResumen" class="sub"></span>
       </div>
       <ul id="asignadosLista" style="padding-left:18px"></ul>
@@ -86,22 +87,49 @@
         <button id="btnImprimir">🖨️ Imprimir</button>
       </div>
       <div class="meta">
-        <a href="settings.html?v=22s6">⚙️ Configuración</a>
-        <span>Build 22s6 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></span>
+        <a href="settings.html?v=22s7">⚙️ Configuración</a>
+        <span>Build 22s7 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></span>
       </div>
     </div>
   </div>
 
+  <!-- Modal selección de operarios -->
   <div id="modalAsignar" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:60">
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:560px;width:94%;padding:16px">
       <h3 style="margin:0 0 8px 0">Seleccionar personal (Operarios)</h3>
       <div id="listChecks" style="max-height:50vh;overflow:auto;padding:6px 2px;border:1px solid var(--border);border-radius:8px;background:#fff"></div>
       <div class="actions" style="margin-top:10px"><button id="selGuardar" class="primary">Aplicar</button><button id="selCerrar">Cerrar</button></div>
-      <p class="sub" style="margin:6px 0 0 0">Para editar el catálogo de personal: ve a ⚙️ Configuración → Gestionar personal.</p>
+      <p class="sub" style="margin:6px 0 0 0">Para editar el catálogo de personal: usa “➕ Añadir personal” o Configuración → Gestionar personal.</p>
     </div>
   </div>
 
-  <div id="login" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:70">
+  <!-- Modal rápido: alta/edición de personal -->
+  <div id="modalQuickPersonal" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:70">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:900px;width:94%;padding:16px">
+      <h3 style="margin:0 0 8px 0">Añadir / editar personal</h3>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px">
+        <input id="qNum" placeholder="Número de empleado">
+        <input id="qNombre" placeholder="Nombre y apellido">
+        <div>
+          <label><input type="checkbox" class="qRole" value="Encargado"> Encargado</label><br>
+          <label><input type="checkbox" class="qRole" value="Supervisor"> Supervisor</label><br>
+          <label><input type="checkbox" class="qRole" value="Operario"> Operario</label><br>
+          <label><input type="checkbox" class="qRole" value="Administración"> Administración</label>
+        </div>
+        <button id="qAgregar" class="primary">Agregar</button>
+      </div>
+      <table style="margin-top:12px">
+        <thead><tr><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th><th>Acciones</th></tr></thead>
+        <tbody id="qTb"></tbody>
+      </table>
+      <div class="actions" style="margin-top:10px">
+        <a href="settings.html?v=22s7" target="_blank" rel="noopener"><button>⚙️ Gestión completa en otra pestaña</button></a>
+        <button id="qCerrar">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:90">
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:420px;width:92%;padding:16px">
       <h3 style="margin:0 0 8px 0">Acceso</h3>
       <p class="sub" style="margin:0 0 10px 0">Selecciona tu rol e ingresa el PIN (Encargado: 1111, Supervisor: 2222)</p>
@@ -110,7 +138,7 @@
     </div>
   </div>
 
-  <script src="auth.js?v=22s6"></script>
-  <script src="app.js?v=22s6"></script>
+  <script src="auth.js?v=22s7"></script>
+  <script src="app.js?v=22s7"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')};</script>
 </body></html>

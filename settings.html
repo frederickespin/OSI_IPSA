@@ -3,7 +3,7 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuración — OSI (v22s6)</title>
+<title>Configuración — OSI (v22s7)</title>
 <style>
 :root{ --bg:#f7f7fb; --fg:#111; --muted:#666; --border:#e4e7ec; --primary:#0d6efd }
 *{ box-sizing:border-box } body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg) }
@@ -18,7 +18,6 @@ small{ color:var(--muted) }
 table{ width:100%; border-collapse:collapse; margin-top:12px } th,td{ border:1px solid var(--border); padding:8px; font-size:14px } th{ background:#f2f4f7; text-align:left }
 .modal{ position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:70 }
 .modal > div{ background:#fff; border:1px solid var(--border); border-radius:12px; max-width:900px; width:94%; padding:16px }
-.role-chip{ display:inline-block; padding:4px 8px; border:1px solid var(--border); border-radius:999px; margin:2px; font-size:12px }
 </style></head><body>
 <div class="container">
   <div class="card">
@@ -35,9 +34,9 @@ table{ width:100%; border-collapse:collapse; margin-top:12px } th,td{ border:1px
     <input id="pinSup" type="password" inputmode="numeric" placeholder="Nuevo PIN Supervisor">
     <div class="grid" style="margin-top:10px">
       <button id="btnUpdatePins" class="primary">Actualizar PIN(es)</button>
-      <a href="index.html?v=22s6" style="text-decoration:none"><button>← Volver</button></a>
+      <a href="index.html?v=22s7" style="text-decoration:none"><button>← Volver</button></a>
     </div>
-    <p><small>Build 22s6 • Si algo no se actualiza, borra caché desde la página principal.</small></p>
+    <p><small>Build 22s7 • Si algo no se actualiza, borra caché desde la página principal.</small></p>
   </div>
 </div>
 
@@ -67,9 +66,8 @@ table{ width:100%; border-collapse:collapse; margin-top:12px } th,td{ border:1px
       <button id="btnImport">⬆️ Importar JSON</button>
       <button id="pCerrar">Cerrar</button>
     </div>
-    <p><small>Consejo: marca los roles adecuados. Encargados, Supervisores y Operarios se usarán como listas filtradas en la OSI.</small></p>
   </div>
 </div>
 
-<script src="settings.js?v=22s6"></script>
+<script src="settings.js?v=22s7"></script>
 </body></html>
