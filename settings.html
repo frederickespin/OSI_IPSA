@@ -1,45 +1,53 @@
 <!DOCTYPE html>
-<html lang="es"><head>
+<html lang="es">
+<head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuración — Roles y Personal (roles_v1d_fixed)</title>
+<title>Configuración — Roles y Personal (v1f_multiselect_mobile)</title>
 <style>
-:root{--bg:#f7f7fb;--fg:#111;--muted:#666;--border:#e4e7ec;--primary:#0d6efd;--r:14px}
-*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--fg)}
-.container{max-width:1040px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);margin-bottom:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-button{padding:12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-weight:700;min-height:44px;cursor:pointer}
+:root{ --bg:#f7f8fb; --border:#e6e7ec; --primary:#0d6efd; --fs:clamp(13px,3.6vw,15px); --fs-sm:clamp(12px,3.2vw,14px); --r:14px; }
+*{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);font-size:var(--fs)}
+.container{max-width:1040px;margin:0 auto;padding:12px}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:12px;box-shadow:0 1px 2px rgba(16,24,40,.04);margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr;gap:8px}
+button{padding:9px 12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-weight:700;min-height:36px;cursor:pointer}
 button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-input{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px;min-height:40px}
-table{width:100%;border-collapse:collapse;margin-top:12px} th,td{border-bottom:1px solid #eee;padding:8px;font-size:14px} th{text-align:left}
-.role-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;margin:4px;background:#fff}
-.danger{color:#b42318}
-</style></head>
+input{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:12px;min-height:36px}
+select.msel{min-height:130px; padding:6px; border-radius:12px}
+select.msel option{padding:6px 8px; line-height:1.2}
+.table{overflow:auto;max-height:56vh;border:1px solid var(--border);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)} th,td{border-bottom:1px solid #eee;padding:6px} th{text-align:left;position:sticky;top:0;background:#fff}
+@media(min-width:720px){ .grid{grid-template-columns:1fr 1fr 1fr} }
+</style>
+</head>
 <body>
-<div class="container">
-  <div class="card">
-    <h2 style="margin:0 0 8px 0">Roles del sistema</h2>
-    <p class="sub" style="color:#666;margin:0 0 10px 0">Encargado y Supervisor son fijos. Añade, renombra o elimina los demás.</p>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px">
-      <input id="roleNew" placeholder="Nuevo rol (ej. Mantenimiento)">
-      <button id="roleAdd" class="primary">Añadir rol</button>
+  <div class="container">
+    <div class="card">
+      <h2 style="margin:0 0 6px 0">Roles del sistema</h2>
+      <div class="grid" style="grid-template-columns: 1fr auto; align-items:center">
+        <input id="roleNew" placeholder="Nuevo rol (ej. Mantenimiento)">
+        <button id="roleAdd" class="primary">Añadir</button>
+      </div>
+      <div class="table" style="margin-top:8px">
+        <table><thead><tr><th>Rol</th><th style="width:160px">Acciones</th></tr></thead><tbody id="tbRoles"></tbody></table>
+      </div>
     </div>
-    <div id="rolesList" style="display:flex;flex-wrap:wrap"></div>
-  </div>
 
-  <div class="card">
-    <h2 style="margin:0 0 8px 0">Gestión de personal</h2>
-    <div class="grid">
-      <input id="nNum" placeholder="No. de empleado">
-      <input id="nNombre" placeholder="Nombre y apellido">
-      <div id="nRoles"></div>
-      <button id="add" class="primary">Agregar</button>
-      <button id="exp">⬇️ Exportar JSON</button>
-      <div><input id="impFile" type="file" accept="application/json"><button id="imp">⬆️ Importar JSON</button></div>
+    <div class="card">
+      <h2 style="margin:0 0 6px 0">Gestión de personal</h2>
+      <div class="grid">
+        <input id="nNum" placeholder="No. de empleado">
+        <input id="nNombre" placeholder="Nombre y apellido">
+        <div><label>Roles (multi-select)</label><select id="nRolesSel" class="msel" multiple size="6"></select></div>
+        <button id="add" class="primary">Agregar</button>
+      </div>
+      <div class="table" style="margin-top:8px">
+        <table>
+          <thead><tr><th>Número</th><th>Nombre</th><th>Roles (multi)</th><th>Activo</th><th>Acciones</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px"><a href="index.html?v=v1f_multiselect_mobile">← Volver al formulario</a></div>
     </div>
-    <table><thead><tr><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th><th>Acciones</th></tr></thead><tbody id="tb"></tbody></table>
-    <div style="margin-top:12px"><a href="index.html?v=roles_v1d_fixed">← Volver al formulario</a></div>
   </div>
-</div>
-<script src="settings.js?v=roles_v1d_fixed"></script>
+  <script src="settings.js?v=v1f_multiselect_mobile"></script>
 </body></html>

@@ -22,12 +22,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  // Fecha
+  // Fecha automática
   const today = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
-  setToday(); setTimeout(setToday,120);
+  setToday(); setTimeout(setToday,100);
 
-  // Numeración demo
+  // Nº OSI demo
   const pad=(n,w)=>String(n).padStart(w,'0'); const seq=()=>parseInt(localStorage.getItem('osi-seq')||'1',10);
   if($('num')) $('num').value='OSI-'+pad(seq(),5);
 
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]);
   }
 
+  // Selects por rol (encargado/supervisor)
   function byRole(role){ return getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role)); }
   function fillSelectByRole(selectId, role){
     const sel=$(selectId); if(!sel) return;
@@ -55,120 +56,120 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function refreshEncSup(){ fillSelectByRole('encargado','Encargado'); fillSelectByRole('supervisor','Supervisor'); }
 
-  // Modal Operarios
+  // ===== Modal selección de operarios =====
   const modalSel=$('modalAsignar');
-  const chips=$('chipsRoles');
-  const listChecks=$('listChecks');
+  const filtroRoles=$('filtroRoles');
+  const tbChecks=$('tbChecks');
   const buscaOper=$('buscaOper');
-  let filtros = new Set();
 
-  function refreshChips(){
-    const roles = getRoles().filter(r=>!CORE_ROLES.includes(r));
-    if(filtros.size===0) roles.forEach(r=>filtros.add(r));
-    if(chips) chips.innerHTML = roles.map(r=>{
-      const on=filtros.has(r);
-      return `<span class="chip ${on?'on':''}" data-chip="${r}">${on?'✓ ':''}${r}</span>`;
-    }).join('');
+  function fillFiltroRoles(){
+    const roles=getRoles().filter(r=>!CORE_ROLES.includes(r));
+    filtroRoles.innerHTML = roles.map(r=>`<option value="${r}" selected>${r}</option>`).join('');
   }
-  function renderCheckList(){
+  function getFiltroRolesSet(){
+    return new Set([...filtroRoles.selectedOptions].map(o=>o.value));
+  }
+  function renderCheckTable(){
+    const filtros = getFiltroRolesSet();
     const q = (buscaOper?.value||'').toLowerCase();
     const cand = getCat().filter(p=>
       p.activo!==false &&
       (p.roles||[]).some(r=>filtros.has(r)) &&
       (!q || (`${p.num} ${p.nombre} ${(p.roles||[]).join(' ')}`.toLowerCase().includes(q)))
     );
-    if(listChecks) listChecks.innerHTML = cand.length? cand.map(p=>`<label style="display:block;padding:8px 10px;border-bottom:1px solid #eee">
-      <input type="checkbox" data-num="${p.num}" ${p.picked?'checked':''}>
-      <strong>${p.num}</strong> — ${p.nombre} <span style="color:#667085">(${(p.roles||[]).join(', ')})</span>
-    </label>`).join('') : '<div class="sub">No hay personal con los criterios seleccionados.</div>';
+    tbChecks.innerHTML = cand.length? cand.map(p=>`<tr>
+      <td style="text-align:center"><input type="checkbox" class="sm" data-num="${p.num}" ${p.picked?'checked':''}></td>
+      <td>${p.num}</td><td>${p.nombre}</td><td>${(p.roles||[]).join(', ')}</td>
+    </tr>`).join('') : '<tr><td colspan="4" class="sub" style="padding:8px">No hay personal con los criterios seleccionados.</td></tr>';
   }
-  function showAsignados(){
-    const sel = getCat().filter(p=>p.picked);
-    if($('asignadosLista')) $('asignadosLista').innerHTML = sel.map(p=>`<li>${p.num} — ${p.nombre}</li>`).join('');
-    if($('asignadosResumen')) $('asignadosResumen').textContent = sel.length? (sel.length+' persona(s) seleccionada(s)'):'';
-  }
-
-  $('btnAsignar')&&($('btnAsignar').onclick=()=>{ modalSel.style.display='flex'; refreshChips(); renderCheckList(); if(buscaOper) buscaOper.value=''; });
-  $('selCerrar')&&($('selCerrar').onclick=()=>{ modalSel.style.display='none'; });
-  $('selGuardar')&&($('selGuardar').onclick=()=>{ modalSel.style.display='none'; showAsignados(); });
-  chips&&chips.addEventListener('click',(e)=>{
-    const chip=e.target.closest('[data-chip]'); if(!chip) return;
-    const r=chip.getAttribute('data-chip');
-    if(filtros.has(r)) filtros.delete(r); else filtros.add(r);
-    refreshChips(); renderCheckList();
-  });
-  buscaOper&&buscaOper.addEventListener('input', renderCheckList);
-  listChecks&&listChecks.addEventListener('change',(e)=>{
+  $('btnAsignar').onclick=()=>{ modalSel.style.display='flex'; fillFiltroRoles(); renderCheckTable(); buscaOper.value=''; };
+  $('selCerrar').onclick=()=>{ modalSel.style.display='none'; };
+  $('selGuardar').onclick=()=>{ modalSel.style.display='none'; showAsignados(); };
+  filtroRoles.addEventListener('change', renderCheckTable);
+  buscaOper.addEventListener('input', renderCheckTable);
+  tbChecks.addEventListener('change',(e)=>{
     const num=e.target.getAttribute('data-num'); if(!num) return;
     const cat=getCat(); const i=cat.findIndex(p=>p.num===num); if(i<0) return;
     cat[i].picked = e.target.checked; setCat(cat);
   });
 
-  // Modal Gestión
-  const modalGest=$('modalGestion');
-  const empRoles=$('empRoles');
-  const tb=$('tbPersonal');
-  function renderRolesInputs(container){
-    const roles=getRoles();
-    if(container) container.innerHTML = roles.map(r=>`<label style="display:inline-flex;align-items:center;gap:6px;margin:4px 8px 4px 0"><input type="checkbox" class="role" value="${r}"> ${r}</label>`).join('');
+  function showAsignados(){
+    const sel = getCat().filter(p=>p.picked);
+    const ul=$('asignadosLista'); if(ul) ul.innerHTML = sel.map(p=>`<li>${p.num} — ${p.nombre}</li>`).join('');
+    const rs=$('asignadosResumen'); if(rs) rs.textContent = sel.length? (sel.length+' persona(s) seleccionada(s)'):'';
   }
+
+  // ===== Modal Gestión de personal (multi-select para roles) =====
+  const modalGest=$('modalGestion');
+  const empRolesSel=$('empRolesSel');
+  const tb=$('tbPersonal');
+
+  function fillRolesMulti(selEl, selected){
+    const roles=getRoles();
+    const set = new Set(selected||[]);
+    selEl.innerHTML = roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
+  }
+
   function renderTabla(filter=''){
     const cat=getCat();
-    const roles=getRoles();
     const q=filter.toLowerCase();
-    if(!tb) return;
     tb.innerHTML='';
     cat.forEach((p,i)=>{
       if(q && !(`${p.num} ${p.nombre} ${(p.roles||[]).join(' ')}`.toLowerCase().includes(q))) return;
-      const rolesCells = `<div class="roleswrap">`+roles.map(r=>`<label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" data-i="${i}" data-role="${r}" ${(p.roles||[]).includes(r)?'checked':''}> ${r}</label>`).join(' ')+`</div>`;
+      const selId='ms-'+i;
       const tr=document.createElement('tr'); tr.innerHTML=`
         <td><input class="tbl-input" data-i="${i}" data-k="num" value="${p.num||''}"></td>
         <td><input class="tbl-input" data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
-        <td>${rolesCells}</td>
-        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
+        <td><select multiple size="4" class="msel" data-i="${i}" data-k="roles" id="${selId}"></select></td>
+        <td style="text-align:center"><input class="sm" type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
         <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}" style="color:#b42318">Eliminar</button></td>`;
       tb.appendChild(tr);
+      fillRolesMulti(document.getElementById(selId), p.roles||[]);
     });
   }
 
-  $('btnGestion')&&($('btnGestion').onclick=()=>{ modalGest.style.display='flex'; renderRolesInputs(empRoles); renderTabla(); });
-  $('gCerrar')&&($('gCerrar').onclick=()=>{ modalGest.style.display='none'; });
-  $('empAgregar')&&($('empAgregar').onclick=()=>{
+  $('btnGestion').onclick=()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel, []); renderTabla(); };
+  $('gCerrar').onclick=()=>{ modalGest.style.display='none'; };
+  $('empAgregar').onclick=()=>{
     const num=$('empNum').value.trim(), nombre=$('empNombre').value.trim();
-    const roles=qsa('.role:checked', empRoles).map(el=>el.value);
+    const roles=[...empRolesSel.selectedOptions].map(o=>o.value);
     if(!num||!nombre||roles.length===0) return alert('Número, Nombre y al menos un Cargo son obligatorios');
     const cat=getCat(); if(cat.some(p=>p.num===num)) return alert('Ya existe un No. de empleado igual');
     cat.push({num,nombre,roles,activo:true}); setCat(cat);
-    $('empNum').value=''; $('empNombre').value=''; qsa('.role:checked', empRoles).forEach(el=>el.checked=false);
-    renderTabla(); refreshEncSup(); renderCheckList(); showAsignados();
-  });
-  $('busca')&&$('busca').addEventListener('input', (e)=>{ renderTabla(e.target.value||''); });
+    $('empNum').value=''; $('empNombre').value=''; [...empRolesSel.options].forEach(o=>o.selected=false);
+    renderTabla(); refreshEncSup(); renderCheckTable(); showAsignados();
+  };
+  $('busca').addEventListener('input', (e)=>{ renderTabla(e.target.value||''); });
 
   document.addEventListener('change',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
     if(e.target.hasAttribute('data-k')){
       const k=e.target.getAttribute('data-k');
-      if(e.target.type==='checkbox') cat[idx][k]=e.target.checked; else cat[idx][k]=e.target.value;
+      if(e.target.tagName==='SELECT' && e.target.multiple && k==='roles'){
+        const vals=[...e.target.selectedOptions].map(o=>o.value);
+        cat[idx].roles = vals;
+      } else if(e.target.type==='checkbox'){
+        cat[idx][k]=e.target.checked;
+      } else {
+        cat[idx][k]=e.target.value;
+      }
       setCat(cat);
-    } else if(e.target.hasAttribute('data-role')){
-      const role=e.target.getAttribute('data-role');
-      const roles=new Set(cat[idx].roles||[]);
-      if(e.target.checked) roles.add(role); else roles.delete(role);
-      cat[idx].roles=[...roles]; setCat(cat);
     }
-    renderTabla($('busca')?$('busca').value:''); refreshEncSup(); renderCheckList(); showAsignados();
+    renderTabla($('busca').value||''); refreshEncSup(); renderCheckTable(); showAsignados();
   });
 
-  $('btnImprimir')&&($('btnImprimir').onclick=()=>window.print());
-  $('btnCompartir')&&($('btnCompartir').onclick=()=>{
-    const txt=encodeURIComponent('OSI — gestión de personal refinada');
+  // Compartir / Imprimir
+  $('btnImprimir').onclick=()=>window.print();
+  $('btnCompartir').onclick=()=>{
+    const txt=encodeURIComponent('OSI — gestión de personal (PWA)');
     window.open('https://wa.me/?text='+txt,'_blank');
-  });
+  };
 
+  // Sync entre pestañas
   window.addEventListener('storage', (e)=>{
-    if(e.key==='osi-roles-ping'){ renderRolesInputs(empRoles); renderTabla($('busca')?$('busca').value:''); refreshChips(); renderCheckList(); }
-    if(e.key==='osi-cat-ping'){ renderTabla($('busca')?$('busca').value:''); refreshEncSup(); renderCheckList(); showAsignados(); }
+    if(e.key==='osi-roles-ping'){ fillRolesMulti(empRolesSel, [...empRolesSel.selectedOptions].map(o=>o.value)); renderTabla($('busca').value||''); fillFiltroRoles(); renderCheckTable(); }
+    if(e.key==='osi-cat-ping'){ renderTabla($('busca').value||''); refreshEncSup(); renderCheckTable(); showAsignados(); }
   });
 
   refreshEncSup();
