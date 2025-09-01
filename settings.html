@@ -3,13 +3,18 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuración — OSI</title>
+<title>Configuración — OSI (v22s3)</title>
 <style>
 :root{ --bg:#f7f7fb; --fg:#111; --muted:#666; --border:#e4e7ec; --primary:#0d6efd }
-*{ box-sizing:border-box } body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg) }
-.container{ max-width:720px; margin:0 auto; padding:16px } .card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 1px 2px rgba(16,24,40,.04) }
-button{ padding:12px; border:1px solid var(--border); border-radius:10px; background:#fff; font-weight:600; width:100%; min-height:44px } button.primary{ background:var(--primary); color:#fff; border-color:var(--primary) }
+*{ box-sizing:border-box } body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg) }
+.container{ max-width:720px; margin:0 auto; padding:16px }
+.card{ background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 1px 2px rgba(16,24,40,.04) }
 .grid{ display:grid; grid-template-columns:1fr; gap:10px }
+button{ padding:12px; border:1px solid var(--border); border-radius:10px; background:#fff; font-weight:600; width:100%; min-height:44px }
+button.primary{ background:var(--primary); color:#fff; border-color:var(--primary) }
+input{ width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; min-height:40px }
+label{ font-size:12px; color:#344054; display:block; margin-top:8px }
+small{ color:var(--muted) }
 </style></head><body>
 <div class="container">
   <div class="card">
@@ -17,30 +22,19 @@ button{ padding:12px; border:1px solid var(--border); border-radius:10px; backgr
     <div class="grid">
       <button id="btnInstall">📥 Instalar app</button>
       <button id="btnShareLink">🔗 Compartir enlace</button>
-      <button id="btnForceRefresh" class="primary">🧹 Forzar actualización (borrar caché)</button>
-      <a href="index.html?v=9r3"><button>← Volver</button></a>
+      <a href="index.html?v=22s3&open=personal" style="text-decoration:none"><button>👥 Gestionar personal</button></a>
     </div>
-    <p style="color:#666;font-size:12px;margin-top:10px">Borrará caché y Service Worker antiguos y recargará la app (build 9r3).</p>
+    <h3 style="margin:16px 0 8px 0">Cambiar PIN</h3>
+    <label>Nuevo PIN Encargado</label>
+    <input id="pinEnc" type="password" inputmode="numeric" placeholder="Nuevo PIN Encargado">
+    <label>Nuevo PIN Supervisor</label>
+    <input id="pinSup" type="password" inputmode="numeric" placeholder="Nuevo PIN Supervisor">
+    <div class="grid" style="margin-top:10px">
+      <button id="btnUpdatePins" class="primary">Actualizar PIN(es)</button>
+      <a href="index.html?v=22s3" style="text-decoration:none"><button>← Volver</button></a>
+    </div>
+    <p><small>Build 22s3 • Si algo no se actualiza, borra caché desde la página principal.</small></p>
   </div>
 </div>
-<script>
-(function(){
-  let deferredPrompt=null;
-  window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault(); deferredPrompt=e;});
-  document.getElementById('btnInstall').onclick = async () => {
-    if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; }
-    else alert('Si no ves el cuadro, usa “Agregar a la pantalla de inicio”.');
-  };
-  document.getElementById('btnShareLink').onclick = async () => {
-    const link = location.origin + location.pathname.replace('settings.html','index.html') + '?v=9r3';
-    if(navigator.share){ try{ await navigator.share({title:'OSI', text:'Formulario OSI', url: link}); }catch(_){}} else { await navigator.clipboard.writeText(link); alert('🔗 Enlace copiado'); }
-  };
-  document.getElementById('btnForceRefresh').onclick = async () => {
-    try { if ('caches' in window) { const keys = await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k))); }
-          if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister())); } }
-    catch(_){}
-    location.href = 'index.html?v=9r3&updated=' + Date.now();
-  };
-})();
-</script>
+<script src="settings.js?v=22s3"></script>
 </body></html>

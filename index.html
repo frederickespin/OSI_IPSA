@@ -3,7 +3,7 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — International Packers (v22s2)</title>
+<title>OSI — International Packers (v22s3)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d6efd">
 <style>
@@ -23,7 +23,7 @@
   .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   button{border:1px solid var(--border);border-radius:10px;padding:10px 14px;background:#fff;font-weight:600;cursor:pointer}
   button.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-  .meta{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
+  .meta{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
   .force a{color:#98a2b3;text-decoration:none;font-size:12px}
   table{width:100%;border-collapse:collapse} th,td{border:1px solid var(--border);padding:8px;font-size:14px}
   th{background:#f2f4f7;text-align:left}
@@ -78,12 +78,15 @@
         <div class="field"><label>Firma</label><canvas id="firma" style="width:100%;height:180px;border:1px solid var(--border);border-radius:8px;background:#fff"></canvas><button id="clearFirma" style="margin-top:6px">🧽 Limpiar firma</button></div>
       </div>
 
-      <div class="actions">
+      <div class="actions" id="actionsEnc">
         <button id="btnGuardar" class="primary">💾 Guardar local</button>
         <button id="btnCompartir">🔗 Compartir por WhatsApp</button>
         <button id="btnImprimir">🖨️ Imprimir</button>
       </div>
-      <div class="meta">Build 22s2 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></div>
+      <div class="meta">
+        <a href="settings.html?v=22s3">⚙️ Configuración</a>
+        <span>Build 22s3 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></span>
+      </div>
     </div>
   </div>
 
@@ -115,7 +118,7 @@
     </div>
   </div>
 
-  <script src="auth.js?v=22s2"></script>
-  <script src="app.js?v=22s2"></script>
+  <script src="auth.js?v=22s3"></script>
+  <script src="app.js?v=22s3"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')};</script>
 </body></html>
