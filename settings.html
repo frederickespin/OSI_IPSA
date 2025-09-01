@@ -3,27 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Configuración — Registro de Personal (roles_v1b)</title>
+  <title>Configuración — Roles y Personal (roles_v1c)</title>
   <style>
     :root { --bg:#f7f7fb; --fg:#111; --muted:#666; --border:#e4e7ec; --primary:#0d6efd }
     * { box-sizing:border-box }
     body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--fg) }
-    .container { max-width:920px; margin:0 auto; padding:16px }
-    .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 1px 2px rgba(16,24,40,.04) }
+    .container { max-width:1040px; margin:0 auto; padding:16px }
+    .card { background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 1px 2px rgba(16,24,40,.04); margin-bottom:16px }
     .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px }
-    button { padding:12px; border:1px solid var(--border); border-radius:10px; background:#fff; font-weight:600; min-height:44px }
+    button { padding:12px; border:1px solid var(--border); border-radius:12px; background:#fff; font-weight:700; min-height:44px; cursor:pointer }
     button.primary { background:var(--primary); color:#fff; border-color:var(--primary) }
-    input { width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; min-height:40px }
-    table { width:100%; border-collapse:collapse; margin-top:12px } 
-    th,td { border:1px solid var(--border); padding:8px; font-size:14px } 
-    th { background:#f2f4f7; text-align:left }
-    .role-chip { display:inline-block; padding:4px 8px; border:1px solid var(--border); border-radius:999px; margin:2px; font-size:12px }
+    input { width:100%; padding:10px; border:1px solid var(--border); border-radius:12px; min-height:40px }
+    table { width:100%; border-collapse:collapse; margin-top:12px }
+    th,td { border-bottom:1px solid #eee; padding:8px; font-size:14px }
+    th { text-align:left }
+    .role-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border); border-radius:999px; margin:4px; background:#fff }
+    .danger { color:#b42318 }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="card">
-      <h2 style="margin:0 0 12px 0">Gestión de personal</h2>
+      <h2 style="margin:0 0 8px 0">Roles del sistema</h2>
+      <p class="sub" style="color:#666;margin:0 0 10px 0">Agrega, renombra o elimina roles sin tocar el código. <b>Encargado</b> y <b>Supervisor</b> son obligatorios y no se pueden borrar.</p>
+      <div style="display:grid; grid-template-columns: 1fr auto; gap:10px; margin-bottom:10px">
+        <input id="roleNew" placeholder="Nuevo rol (ej. Mantenimiento)">
+        <button id="roleAdd" class="primary">Añadir rol</button>
+      </div>
+      <div id="rolesList" style="display:flex;flex-wrap:wrap"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 8px 0">Gestión de personal</h2>
       <div class="grid">
         <input id="nNum" placeholder="No. de empleado">
         <input id="nNombre" placeholder="Nombre y apellido">
@@ -39,9 +50,9 @@
         <thead><tr><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th><th>Acciones</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
-      <div style="margin-top:12px"><a href="index.html?v=roles_v1b">← Volver al formulario</a></div>
+      <div style="margin-top:12px"><a href="index.html?v=roles_v1c">← Volver al formulario</a></div>
     </div>
   </div>
-  <script src="settings.js?v=roles_v1b"></script>
+  <script src="settings.js?v=roles_v1c"></script>
 </body>
 </html>
