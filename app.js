@@ -22,16 +22,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  // Fecha automática
   const today = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
   setToday(); setTimeout(setToday,100);
 
-  // Nº OSI demo
   const pad=(n,w)=>String(n).padStart(w,'0'); const seq=()=>parseInt(localStorage.getItem('osi-seq')||'1',10);
   if($('num')) $('num').value='OSI-'+pad(seq(),5);
 
-  // Catálogo
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); try{localStorage.setItem('osi-cat-ping', String(Date.now()));}catch(_){ } }
 
@@ -47,7 +44,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     ]);
   }
 
-  // Selects por rol (encargado/supervisor)
   function byRole(role){ return getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role)); }
   function fillSelectByRole(selectId, role){
     const sel=$(selectId); if(!sel) return;
@@ -56,7 +52,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function refreshEncSup(){ fillSelectByRole('encargado','Encargado'); fillSelectByRole('supervisor','Supervisor'); }
 
-  // ===== Modal selección de operarios =====
   const modalSel=$('modalAsignar');
   const filtroRoles=$('filtroRoles');
   const tbChecks=$('tbChecks');
@@ -66,9 +61,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const roles=getRoles().filter(r=>!CORE_ROLES.includes(r));
     filtroRoles.innerHTML = roles.map(r=>`<option value="${r}" selected>${r}</option>`).join('');
   }
-  function getFiltroRolesSet(){
-    return new Set([...filtroRoles.selectedOptions].map(o=>o.value));
-  }
+  function getFiltroRolesSet(){ return new Set([...filtroRoles.selectedOptions].map(o=>o.value)); }
   function renderCheckTable(){
     const filtros = getFiltroRolesSet();
     const q = (buscaOper?.value||'').toLowerCase();
@@ -79,7 +72,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     );
     tbChecks.innerHTML = cand.length? cand.map(p=>`<tr>
       <td style="text-align:center"><input type="checkbox" class="sm" data-num="${p.num}" ${p.picked?'checked':''}></td>
-      <td>${p.num}</td><td>${p.nombre}</td><td>${(p.roles||[]).join(', ')}</td>
+      <td>${p.num}</td><td>${p.nombre}</td><td>${(p.roles||[]).map(r=>'<span class="badge badge-primary">'+r+'</span>').join(' ')}</td>
     </tr>`).join('') : '<tr><td colspan="4" class="sub" style="padding:8px">No hay personal con los criterios seleccionados.</td></tr>';
   }
   $('btnAsignar').onclick=()=>{ modalSel.style.display='flex'; fillFiltroRoles(); renderCheckTable(); buscaOper.value=''; };
@@ -96,10 +89,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   function showAsignados(){
     const sel = getCat().filter(p=>p.picked);
     const ul=$('asignadosLista'); if(ul) ul.innerHTML = sel.map(p=>`<li>${p.num} — ${p.nombre}</li>`).join('');
-    const rs=$('asignadosResumen'); if(rs) rs.textContent = sel.length? (sel.length+' persona(s) seleccionada(s)'):'';
+    const rs=$('asignadosResumen'); if(rs) rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  // ===== Modal Gestión de personal (multi-select para roles) =====
   const modalGest=$('modalGestion');
   const empRolesSel=$('empRolesSel');
   const tb=$('tbPersonal');
@@ -118,11 +110,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(q && !(`${p.num} ${p.nombre} ${(p.roles||[]).join(' ')}`.toLowerCase().includes(q))) return;
       const selId='ms-'+i;
       const tr=document.createElement('tr'); tr.innerHTML=`
+        <td style="text-align:center"><input class="sm" type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
         <td><input class="tbl-input" data-i="${i}" data-k="num" value="${p.num||''}"></td>
         <td><input class="tbl-input" data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
         <td><select multiple size="4" class="msel" data-i="${i}" data-k="roles" id="${selId}"></select></td>
-        <td style="text-align:center"><input class="sm" type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
-        <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}" style="color:#b42318">Eliminar</button></td>`;
+        <td><button class="btn" data-act="dup" data-i="${i}">Duplicar</button> <button class="btn btn-danger" data-act="del" data-i="${i}">Eliminar</button></td>`;
       tb.appendChild(tr);
       fillRolesMulti(document.getElementById(selId), p.roles||[]);
     });
@@ -159,14 +151,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderTabla($('busca').value||''); refreshEncSup(); renderCheckTable(); showAsignados();
   });
 
-  // Compartir / Imprimir
   $('btnImprimir').onclick=()=>window.print();
   $('btnCompartir').onclick=()=>{
     const txt=encodeURIComponent('OSI — gestión de personal (PWA)');
     window.open('https://wa.me/?text='+txt,'_blank');
   };
 
-  // Sync entre pestañas
   window.addEventListener('storage', (e)=>{
     if(e.key==='osi-roles-ping'){ fillRolesMulti(empRolesSel, [...empRolesSel.selectedOptions].map(o=>o.value)); renderTabla($('busca').value||''); fillFiltroRoles(); renderCheckTable(); }
     if(e.key==='osi-cat-ping'){ renderTabla($('busca').value||''); refreshEncSup(); renderCheckTable(); showAsignados(); }

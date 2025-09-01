@@ -22,15 +22,20 @@
   function getRoles(){ return ensureRoles(); }
   function setRoles(a){ ls(ROLES_KEY, Array.from(new Set(a))); ping('osi-roles-ping'); }
 
-  // Roles del sistema (tabla simple)
+  function fillRolesMulti(selEl, selected){
+    const roles=getRoles();
+    const set = new Set(selected||[]);
+    selEl.innerHTML = roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
+  }
+
   function renderRolesTable(){
-    const tb=$('tbRoles'); tb.innerHTML='';
+    const tb=document.getElementById('tbRoles'); tb.innerHTML='';
     getRoles().forEach((r,i)=>{
       const isCore = CORE_ROLES.includes(r);
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${r}</td>
-        <td>${isCore? '<span style="color:#999">Fijo</span>' :
-          '<button data-act="edit" data-i="'+i+'">Renombrar</button> <button data-act="del" data-i="'+i+'" style="color:#b42318">Eliminar</button>'}</td>`;
+      tr.innerHTML = `<td><span class="badge ${isCore?'badge-primary':''}">${r}</span></td>
+        <td>${isCore? '<span class="sub" style="color:#999">Fijo</span>' :
+          '<button class="btn" data-act="edit" data-i="'+i+'">Renombrar</button> <button class="btn btn-danger" data-act="del" data-i="'+i+'">Eliminar</button>'}</td>`;
       tb.appendChild(tr);
     });
   }
@@ -39,7 +44,7 @@
     if(!name) return alert('Escribe un nombre de rol');
     const roles = getRoles();
     if(roles.includes(name)) return alert('Ese rol ya existe');
-    roles.push(name); setRoles(roles); renderRolesTable(); fillRolesMulti($('nRolesSel'), []);
+    roles.push(name); setRoles(roles); renderRolesTable(); fillRolesMulti(document.getElementById('nRolesSel'), []);
   }
   function editRole(idx){
     const roles=getRoles();
@@ -48,54 +53,47 @@
     if(!name) return;
     const n = name.trim(); if(!n) return alert('Nombre inválido');
     if(roles.includes(n)) return alert('Ese nombre ya existe');
-    roles[idx]=n; setRoles(roles); renderRolesTable(); fillRolesMulti($('nRolesSel'), []);
+    roles[idx]=n; setRoles(roles); renderRolesTable(); fillRolesMulti(document.getElementById('nRolesSel'), []);
   }
   function delRole(idx){
     const roles=getRoles();
     const r=roles[idx]; if(CORE_ROLES.includes(r)) return alert('Este rol es fijo');
     if(!confirm('Eliminar rol "'+r+'"?')) return;
-    roles.splice(idx,1); setRoles(roles); renderRolesTable(); fillRolesMulti($('nRolesSel'), []);
+    roles.splice(idx,1); setRoles(roles); renderRolesTable(); fillRolesMulti(document.getElementById('nRolesSel'), []);
   }
-  $('roleAdd').onclick=()=>addRole($('roleNew').value);
   document.addEventListener('click',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const act=e.target.getAttribute('data-act');
     if(act==='edit') editRole(parseInt(i,10));
     if(act==='del') delRole(parseInt(i,10));
   });
+  document.getElementById('roleAdd').onclick=()=>addRole(document.getElementById('roleNew').value);
 
-  // Personal
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); ping('osi-cat-ping'); }
 
-  function fillRolesMulti(selEl, selected){
-    const roles=getRoles();
-    const set = new Set(selected||[]);
-    selEl.innerHTML = roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
-  }
-
   function renderTabla(){
-    const tb=$('tb'); tb.innerHTML='';
+    const tb=document.getElementById('tb'); tb.innerHTML='';
     getCat().forEach((p,i)=>{
       const selId='prs-'+i;
       const tr=document.createElement('tr'); tr.innerHTML=`
-        <td><input data-i="${i}" data-k="num" value="${p.num||''}"></td>
-        <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
+        <td style="text-align:center"><input type="checkbox" class="sm" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
+        <td><input data-i="${i}" data-k="num" value="${p.num||''}" class="tbl-input"></td>
+        <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}" class="tbl-input"></td>
         <td><select multiple size="4" class="msel" data-i="${i}" data-k="roles" id="${selId}"></select></td>
-        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
-        <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}" style="color:#b42318">Eliminar</button></td>`;
+        <td><button class="btn" data-act="dup" data-i="${i}">Duplicar</button> <button class="btn btn-danger" data-act="del" data-i="${i}">Eliminar</button></td>`;
       tb.appendChild(tr);
       fillRolesMulti(document.getElementById(selId), p.roles||[]);
     });
   }
 
-  $('add').onclick=()=>{
-    const num=$('nNum').value.trim(), nombre=$('nNombre').value.trim();
-    const roles=[...$('nRolesSel').selectedOptions].map(o=>o.value);
+  document.getElementById('add').onclick=()=>{
+    const num=document.getElementById('nNum').value.trim(), nombre=document.getElementById('nNombre').value.trim();
+    const roles=[...document.getElementById('nRolesSel').selectedOptions].map(o=>o.value);
     if(!num||!nombre||roles.length===0) return alert('Número, Nombre y al menos un Cargo son obligatorios');
     const cat=getCat(); if(cat.some(p=>p.num===num)) return alert('Ya existe un No. de empleado igual');
     cat.push({num,nombre,roles,activo:true}); setCat(cat); renderTabla();
-    $('nNum').value=''; $('nNombre').value=''; [...$('nRolesSel').options].forEach(o=>o.selected=false);
+    document.getElementById('nNum').value=''; document.getElementById('nNombre').value=''; [...document.getElementById('nRolesSel').options].forEach(o=>o.selected=false);
   };
 
   document.addEventListener('change',(e)=>{
@@ -115,8 +113,7 @@
     }
   });
 
-  // Inicialización
-  fillRolesMulti($('nRolesSel'), []);
   renderRolesTable();
   renderTabla();
+  fillRolesMulti(document.getElementById('nRolesSel'), []);
 })();
