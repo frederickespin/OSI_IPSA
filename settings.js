@@ -4,7 +4,6 @@
   const CAT_KEY='osi-personal-v1';
   const CORE_ROLES=['Encargado','Supervisor'];
   const $=id=>document.getElementById(id);
-  const qsa=(sel,el=document)=>[...el.querySelectorAll(sel)];
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
   const ping=(k)=>{ try{ localStorage.setItem(k, String(Date.now())); }catch(_){} };
 
@@ -33,9 +32,9 @@
     getRoles().forEach((r,i)=>{
       const isCore = CORE_ROLES.includes(r);
       const tr=document.createElement('tr');
-      tr.innerHTML = `<td><span class="badge ${isCore?'badge-primary':''}">${r}</span></td>
+      tr.innerHTML = `<td>${r}</td>
         <td>${isCore? '<span class="sub" style="color:#999">Fijo</span>' :
-          '<button class="btn" data-act="edit" data-i="'+i+'">Renombrar</button> <button class="btn btn-danger" data-act="del" data-i="'+i+'">Eliminar</button>'}</td>`;
+          '<button data-act="edit" data-i="'+i+'">Renombrar</button> <button data-act="del" data-i="'+i+'" style="color:#b42318">Eliminar</button>'}</td>`;
       tb.appendChild(tr);
     });
   }
@@ -81,7 +80,7 @@
         <td><input data-i="${i}" data-k="num" value="${p.num||''}" class="tbl-input"></td>
         <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}" class="tbl-input"></td>
         <td><select multiple size="4" class="msel" data-i="${i}" data-k="roles" id="${selId}"></select></td>
-        <td><button class="btn" data-act="dup" data-i="${i}">Duplicar</button> <button class="btn btn-danger" data-act="del" data-i="${i}">Eliminar</button></td>`;
+        <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}" style="color:#b42318">Eliminar</button></td>`;
       tb.appendChild(tr);
       fillRolesMulti(document.getElementById(selId), p.roles||[]);
     });
