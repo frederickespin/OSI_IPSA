@@ -1,5 +1,6 @@
 
 (function(){
+  // PWA install / share
   let deferredPrompt=null;
   window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault(); deferredPrompt=e;});
   const $ = (id) => document.getElementById(id);
@@ -8,10 +9,11 @@
     else alert('Si no ves el cuadro, usa “Agregar a la pantalla de inicio”.');
   };
   $('#btnShareLink').onclick = async () => {
-    const link = location.origin + location.pathname.replace('settings.html','index.html') + '?v=22s5';
+    const link = location.origin + location.pathname.replace('settings.html','index.html') + '?v=22s6';
     if(navigator.share){ try{ await navigator.share({title:'OSI', text:'Formulario OSI', url: link}); }catch(_){}} else { await navigator.clipboard.writeText(link); alert('🔗 Enlace copiado'); }
   };
 
+  // Cambiar PIN
   function enc(s){ return new TextEncoder().encode(s); }
   function pbkdf2(pin,salt,it){
     return crypto.subtle.importKey('raw', enc(pin), 'PBKDF2', false, ['deriveBits'])
@@ -44,9 +46,18 @@
   }
   $('#btnUpdatePins').onclick = updatePins;
 
+  // Catálogo (v2)
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
   function getCat(){ return ls('osi-catalog-v2')||[] }
-  function setCat(a){ ls('osi-catalog-v2', a); }
+  function setCat(a){ ls('osi-catalog-v2', a); notify(); }
+
+  // Notificar a otras páginas (index) que se actualizó el catálogo
+  function notify(){
+    if('BroadcastChannel' in window){ try{ const bc=new BroadcastChannel('osi'); bc.postMessage('cat-updated'); bc.close(); }catch(_){ } }
+    // Fallback para desencadenar 'storage' en otras pestañas
+    try{ localStorage.setItem('osi-cat-ping', String(Date.now())); }catch(_){}
+  }
+
   function render(){
     const tbody = document.getElementById('tbPersonal'); tbody.innerHTML='';
     getCat().forEach((p,i)=>{
