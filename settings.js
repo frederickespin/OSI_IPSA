@@ -8,7 +8,6 @@
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
   const ping=(k)=>{ try{ localStorage.setItem(k, String(Date.now())); }catch(_){} };
 
-  // Roles
   function ensureRoles(){
     let roles = ls(ROLES_KEY);
     if(!Array.isArray(roles) || roles.length===0){
@@ -62,7 +61,6 @@
     if(act==='del') delRole(parseInt(i,10));
   });
 
-  // Personal
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); ping('osi-cat-ping'); }
 
@@ -119,6 +117,5 @@
     if(act==='dup'){ const copy=Object.assign({},cat[idx],{num:(cat[idx].num||'')+'-copia'}); cat.push(copy); setCat(cat); renderTabla(); }
   });
 
-  // Init
-  ensureRoles(); renderRolesPills(); renderRolesChoices(); renderTabla();
+  ensureRoles(); renderRolesPills?.(); renderRolesChoices?.(); renderTabla?.();
 })();
