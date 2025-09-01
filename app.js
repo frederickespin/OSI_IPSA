@@ -1,102 +1,125 @@
 
 document.addEventListener('DOMContentLoaded',()=>{
+  const ROLES_MASTER = ['Encargado','Supervisor','Chofer','Empacador','Mecánico','Carpintero','Operario'];
   const $=id=>document.getElementById(id);
+  const qsa=(sel,el=document)=>[...el.querySelectorAll(sel)];
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
+  const CAT_KEY='osi-personal-v1';
 
-  // === Fecha automática robusta ===
-  const todayStr = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
-  const setToday = ()=>{ const t=todayStr(); const f=$('#fecha'); f.value=t; f.setAttribute('min',t); f.setAttribute('max',t); };
-  setToday(); ['change','input','blur','focus'].forEach(ev=>$('#fecha').addEventListener(ev, setToday));
-  setTimeout(setToday, 150);
+  // === Fecha automática (hoy) ===
+  const today = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
+  const setToday=()=>{ const t=today(); const f=$('fecha'); f.value=t; f.min=t; f.max=t; };
+  setToday(); ['change','input','blur','focus'].forEach(ev=>$('fecha').addEventListener(ev,setToday));
+  setTimeout(setToday,150);
 
-  // === Numeración ===
-  const pad=(n,w)=>String(n).padStart(w,'0');
-  function getSeq(){return parseInt(localStorage.getItem('osi-seq')||'1',10)}
-  function asignarNumero(){ $('#num').value='OSI-'+pad(getSeq(),5) }
-  asignarNumero();
+  // === Numeración demo ===
+  const pad=(n,w)=>String(n).padStart(w,'0'); const seq=()=>parseInt(localStorage.getItem('osi-seq')||'1',10);
+  $('num').value='OSI-'+pad(seq(),5);
 
-  // === Catálogo v2 (seed si vacío) ===
-  function getCat(){ return ls('osi-catalog-v2')||[] }
-  function setCat(a){ ls('osi-catalog-v2', a) }
-  if(!ls('osi-catalog-v2')){
-    setCat([
-      {num:'E-0001', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
-      {num:'S-0001', nombre:'Samuel Supervisor', roles:['Supervisor'], activo:true},
-      {num:'O-0001', nombre:'Olga Operaria', roles:['Operario'], activo:true},
+  // === Catálogo ===
+  function getCat(){ return ls(CAT_KEY)||[] }
+  function setCat(a){ ls(CAT_KEY,a); notify(); }
+  function ensureSeed(){
+    if(!ls(CAT_KEY)) setCat([
+      {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
+      {num:'S-020', nombre:'Samuel Supervisor', roles:['Supervisor'], activo:true},
+      {num:'C-100', nombre:'Carlos Chofer', roles:['Chofer','Operario'], activo:true},
+      {num:'E-200', nombre:'Elena Empacadora', roles:['Empacador','Operario'], activo:true},
+      {num:'M-300', nombre:'Mario Mecánico', roles:['Mecánico','Operario'], activo:true},
+      {num:'K-400', nombre:'Karla Carpintera', roles:['Carpintero','Operario'], activo:true}
     ]);
   }
-
-  // === Notificación cruzada ===
-  const notify=()=>{ if('BroadcastChannel' in window){ try{const bc=new BroadcastChannel('osi'); bc.postMessage('cat-updated'); bc.close(); }catch(_){}} try{localStorage.setItem('osi-cat-ping', String(Date.now()));}catch(_){} };
-  const bc=('BroadcastChannel' in window)? new BroadcastChannel('osi') : null;
-  if(bc){ bc.onmessage=(ev)=>{ if(ev && ev.data==='cat-updated'){ refreshAll(); } }; }
-  window.addEventListener('storage',(e)=>{ if(e.key==='osi-cat-ping'){ refreshAll(); }});
-
-  // === Selects por rol ===
-  function fillByRole(selectEl, role){
-    const cat=getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role));
-    selectEl.innerHTML = '<option value="">—</option>' + cat.map(p=>`<option value="${p.num||p.nombre}">${p.num? p.num+' — ':''}${p.nombre}</option>`).join('');
+  function notify(){
+    try{ localStorage.setItem('osi-cat-ping', String(Date.now())); }catch(_){}
   }
-  function refreshRoleSelects(){ fillByRole($('#encargado'), 'Encargado'); fillByRole($('#supervisor'), 'Supervisor'); }
-  function renderChecks(){
-    const list=$('listChecks');
-    const cat=getCat().filter(p=>p.activo!==false && (p.roles||[]).includes('Operario'));
-    list.innerHTML = cat.length? cat.map((p)=>`
-      <label style="display:block;padding:6px 8px;border-bottom:1px solid #eee">
-        <input type="checkbox" data-num="${p.num||''}" ${p.picked?'checked':''}>
-        ${p.num? `<strong>${p.num}</strong> — `:''}${p.nombre} <span style="color:#667085">(${(p.roles||[]).join(', ')})</span>
-      </label>`).join('') : '<div class="sub">No hay operarios activos. Usa “➕ Añadir personal”.</div>';
+  ensureSeed();
+
+  // === Helpers de filtrado ===
+  const byRole=(role)=>getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role));
+
+  function fillSelectByRole(selectId, role){
+    const sel=$(selectId); if(!sel) return;
+    const list = byRole(role);
+    sel.innerHTML = '<option value=\"\">—</option>' + list.map(p=>`<option value="${p.num}">${p.num} — ${p.nombre}</option>`).join('');
+  }
+  function refreshEncSup(){
+    fillSelectByRole('encargado','Encargado');
+    fillSelectByRole('supervisor','Supervisor');
+  }
+  refreshEncSup();
+
+  // === Modal Selección de Operarios con filtro por cargo ===
+  const modalSel=$('modalAsignar');
+  const chips=$('chipsRoles');
+  const listChecks=$('listChecks');
+  let filtrosOperario = new Set(['Chofer','Empacador','Mecánico','Carpintero','Operario']); // por defecto muestra todos operarios
+
+  function renderChips(){
+    chips.innerHTML = ROLES_MASTER.filter(r=>r!=='Encargado' && r!=='Supervisor').map(r=>{
+      const on= filtrosOperario.has(r);
+      return `<button data-chip="${r}" style="border-radius:999px; padding:6px 10px; ${on? 'background:#0d6efd;color:#fff;border-color:#0d6efd' : 'background:#fff;color:#111;border-color:#e4e7ec'}">${on?'✓ ':''}${r}</button>`;
+    }).join('');
+  }
+  function renderCheckList(){
+    const cand = getCat().filter(p=>p.activo!==false && (p.roles||[]).some(r=>filtrosOperario.has(r)));
+    listChecks.innerHTML = cand.length? cand.map(p=>`<label style="display:block;padding:6px 8px;border-bottom:1px solid #eee">
+      <input type="checkbox" data-num="${p.num}" ${p.picked?'checked':''}>
+      <strong>${p.num}</strong> — ${p.nombre} <span style="color:#667085">(${(p.roles||[]).join(', ')})</span>
+    </label>`).join('') : '<div class="sub">No hay personal con los cargos seleccionados.</div>';
   }
   function showAsignados(){
-    const cat=getCat().filter(p=>p.picked);
-    $('asignadosLista').innerHTML = cat.map(p=>`<li>${p.num? p.num+' — ':''}${p.nombre}</li>`).join('');
-    $('asignadosResumen').textContent = cat.length? (cat.length+' persona(s) seleccionada(s)'):'';
+    const sel = getCat().filter(p=>p.picked);
+    $('asignadosLista').innerHTML = sel.map(p=>`<li>${p.num} — ${p.nombre}</li>`).join('');
+    $('asignadosResumen').textContent = sel.length? (sel.length+' persona(s) seleccionada(s)'):'';
   }
-  function refreshAll(){ refreshRoleSelects(); renderChecks(); showAsignados(); }
-  refreshAll();
 
-  // === Modal selección de operarios ===
-  const modal=$('modalAsignar');
-  $('btnAsignar').onclick=()=>{ modal.style.display='flex'; renderChecks(); };
-  $('selCerrar').onclick=()=>{ modal.style.display='none'; };
-  $('selGuardar').onclick=()=>{ modal.style.display='none'; showAsignados(); };
-  document.getElementById('listChecks').addEventListener('change',(e)=>{
-    const num=e.target.getAttribute('data-num'); if(num===null) return;
-    const cat=getCat(); const idx = cat.findIndex(p=>(p.num||'')===num);
-    if(idx>=0){ cat[idx].picked = e.target.checked; setCat(cat); }
+  $('btnAsignar').onclick=()=>{ modalSel.style.display='flex'; renderChips(); renderCheckList(); };
+  $('selCerrar').onclick=()=>{ modalSel.style.display='none'; };
+  $('selGuardar').onclick=()=>{ modalSel.style.display='none'; showAsignados(); };
+  chips.addEventListener('click',(e)=>{
+    const r=e.target.getAttribute('data-chip'); if(!r) return;
+    if(filtrosOperario.has(r)) filtrosOperario.delete(r); else filtrosOperario.add(r);
+    renderChips(); renderCheckList();
+  });
+  listChecks.addEventListener('change',(e)=>{
+    const num=e.target.getAttribute('data-num'); if(!num) return;
+    const cat=getCat(); const i=cat.findIndex(p=>p.num===num); if(i<0) return;
+    cat[i].picked = e.target.checked; setCat(cat);
   });
 
-  // === Modal rápido de alta/edición ===
-  const qm=$('modalQuickPersonal'), qTb=$('qTb');
-  function qRender(){
+  // === Modal Gestión rápida ===
+  const modalGest=$('modalGestion');
+  const empRoles=$('empRoles');
+  const tb=$('tbPersonal');
+  function rolesInputs(container){
+    container.innerHTML = ROLES_MASTER.map(r=>`<label style="display:inline-block;margin-right:8px"><input type="checkbox" class="role" value="${r}"> ${r}</label>`).join('');
+  }
+  rolesInputs(empRoles);
+
+  function renderTabla(){
     const cat=getCat();
-    qTb.innerHTML='';
+    tb.innerHTML='';
     cat.forEach((p,i)=>{
       const tr=document.createElement('tr'); tr.innerHTML=`
         <td><input data-i="${i}" data-k="num" value="${p.num||''}"></td>
         <td><input data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
-        <td>
-          <label><input type="checkbox" data-i="${i}" data-role="Encargado" ${ (p.roles||[]).includes('Encargado')? 'checked':'' }> Encargado</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Supervisor" ${ (p.roles||[]).includes('Supervisor')? 'checked':'' }> Supervisor</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Operario" ${ (p.roles||[]).includes('Operario')? 'checked':'' }> Operario</label>
-          <label><input type="checkbox" data-i="${i}" data-role="Administración" ${ (p.roles||[]).includes('Administración')? 'checked':'' }> Administración</label>
-        </td>
-        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false? 'checked':''}></td>
+        <td>${ROLES_MASTER.map(r=>`<label><input type="checkbox" data-i="${i}" data-role="${r}" ${ (p.roles||[]).includes(r)?'checked':'' }> ${r}</label>`).join(' ')}</td>
+        <td style="text-align:center"><input type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
         <td><button data-act="dup" data-i="${i}">Duplicar</button> <button data-act="del" data-i="${i}">Eliminar</button></td>`;
-      qTb.appendChild(tr);
+      tb.appendChild(tr);
     });
   }
-  $('btnQuickAdd').onclick=()=>{ qm.style.display='flex'; qRender(); };
-  $('qCerrar').onclick=()=>{ qm.style.display='none'; };
 
-  $('qAgregar').onclick=()=>{
-    const num=$('qNum').value.trim(), nombre=$('qNombre').value.trim();
-    const roles=[...document.querySelectorAll('.qRole:checked')].map(el=>el.value);
-    if(!num || !nombre || roles.length===0){ alert('Número, Nombre y al menos un Rol son obligatorios'); return; }
-    const cat=getCat(); if(cat.some(p=>(p.num||'')===num)){ alert('Ya existe un empleado con ese número'); return; }
-    cat.push({num, nombre, roles, activo:true, picked:false});
-    setCat(cat); qRender(); refreshAll();
-    $('qNum').value=''; $('qNombre').value=''; document.querySelectorAll('.qRole:checked').forEach(el=>el.checked=false);
+  $('btnGestion').onclick=()=>{ modalGest.style.display='flex'; renderTabla(); };
+  $('gCerrar').onclick=()=>{ modalGest.style.display='none'; };
+  $('empAgregar').onclick=()=>{
+    const num=$('empNum').value.trim(), nombre=$('empNombre').value.trim();
+    const roles=qsa('.role:checked', empRoles).map(el=>el.value);
+    if(!num||!nombre||roles.length===0) return alert('Número, Nombre y al menos un Cargo son obligatorios');
+    const cat=getCat(); if(cat.some(p=>p.num===num)) return alert('Ya existe un No. de empleado igual');
+    cat.push({num,nombre,roles,activo:true}); setCat(cat);
+    $('empNum').value=''; $('empNombre').value=''; qsa('.role:checked', empRoles).forEach(el=>el.checked=false);
+    renderTabla(); refreshEncSup(); renderCheckList(); showAsignados();
   };
 
   document.addEventListener('change',(e)=>{
@@ -105,84 +128,28 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(e.target.hasAttribute('data-k')){
       const k=e.target.getAttribute('data-k');
       if(e.target.type==='checkbox') cat[idx][k]=e.target.checked; else cat[idx][k]=e.target.value;
-      setCat(cat); refreshAll();
+      setCat(cat);
     } else if(e.target.hasAttribute('data-role')){
       const role=e.target.getAttribute('data-role');
-      const roles = new Set(cat[idx].roles||[]);
+      const roles=new Set(cat[idx].roles||[]);
       if(e.target.checked) roles.add(role); else roles.delete(role);
-      cat[idx].roles = Array.from(roles);
-      setCat(cat); refreshAll();
+      cat[idx].roles=[...roles]; setCat(cat);
     }
+    renderTabla(); refreshEncSup(); renderCheckList(); showAsignados();
   });
 
   document.addEventListener('click',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const act=e.target.getAttribute('data-act'); const cat=getCat(); const idx=parseInt(i,10);
-    if(act==='del'){ if(!confirm('Eliminar a '+(cat[idx].num? cat[idx].num+' — ':'')+(cat[idx].nombre||'')+'?')) return;
-      cat.splice(idx,1); setCat(cat); qRender(); refreshAll(); }
-    if(act==='dup'){ const copy=Object.assign({},cat[idx],{num:(cat[idx].num||'')+'-copia'}); cat.push(copy); setCat(cat); qRender(); refreshAll(); }
+    if(act==='del'){ if(!confirm('Eliminar a '+(cat[idx].num||'')+' — '+(cat[idx].nombre||'' )+'?')) return;
+      cat.splice(idx,1); setCat(cat); renderTabla(); refreshEncSup(); renderCheckList(); showAsignados(); }
+    if(act==='dup'){ const copy=Object.assign({},cat[idx],{num:(cat[idx].num||'')+'-copia'}); cat.push(copy); setCat(cat); renderTabla(); }
   });
 
-  // === Materiales ===
-  function addMatRow(i, item='', qty='', note=''){ const tr=document.createElement('tr'); tr.innerHTML=`
-    <td><input data-m='item' data-i='${i}' value='${item}'></td>
-    <td style='width:120px'><input data-m='qty' data-i='${i}' value='${qty}'></td>
-    <td><input data-m='note' data-i='${i}' value='${note}'></td>
-    <td style='width:120px'><button data-m='del' data-i='${i}'>Eliminar</button></td>`; document.getElementById('tbMat').appendChild(tr); }
-  document.getElementById('addMat').onclick=()=>addMatRow(document.querySelectorAll('#tbMat tr').length);
-  document.addEventListener('click',(e)=>{ if(e.target.getAttribute('data-m')==='del'){ const row=e.target.closest('tr'); if(row) row.remove(); }});
-
-  // === Firma ===
-  function initFirma(){ const c=$('firma'); const ctx=c.getContext('2d'); let drawing=false, last=null;
-    const pos=(e)=>{ const r=c.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; };
-    const start=(e)=>{ drawing=true; last=pos(e); };
-    const move=(e)=>{ if(!drawing) return; const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.lineWidth=2; ctx.strokeStyle='#111'; ctx.stroke(); last=p; };
-    const end=()=>{ drawing=false; };
-    c.addEventListener('mousedown',start); c.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
-    c.addEventListener('touchstart',start,{passive:true}); c.addEventListener('touchmove',move,{passive:true}); c.addEventListener('touchend',end);
-    document.getElementById('clearFirma').onclick=()=>{ ctx.clearRect(0,0,c.width,c.height); };
-    const resize=()=>{ const data=c.toDataURL(); c.width=c.clientWidth; c.height=c.clientHeight; const img=new Image(); img.onload=()=>{ ctx.drawImage(img,0,0,c.width,c.height); }; img.src=data; };
-    new ResizeObserver(resize).observe(c);
-  }
-  initFirma();
-
-  // === Compartir / Imprimir / Guardar ===
-  document.getElementById('btnImprimir').onclick=()=>window.print();
-  document.getElementById('btnCompartir').onclick=()=>{
-    const datos={num:$('#num').value, fecha:$('#fecha').value, area:$('#area').value, prio:$('#prio').value, lugar:$('#lugar').value, enc:$('#encargado').value, sup:$('#supervisor').value};
-    const txt=`OSI ${datos.num}%0AFecha: ${datos.fecha}%0AEncargado: ${datos.enc}%0ASupervisor: ${datos.sup}%0AÁrea: ${datos.area}%0APrioridad: ${datos.prio}%0ALugar: ${datos.lugar}%0A---%0AInstrucciones:%0A`+encodeURIComponent($('#desc').value||'');
+  // === Compartir / Imprimir ===
+  $('btnImprimir').onclick=()=>window.print();
+  $('btnCompartir').onclick=()=>{
+    const txt=encodeURIComponent('Formulario OSI — demo de registro y filtros por cargo');
     window.open('https://wa.me/?text='+txt,'_blank');
   };
-
-  function saveMat(){ const rows=[...document.querySelectorAll('#tbMat tr')]; return rows.map(tr=>({item: tr.querySelector('[data-m="item"]').value, qty: tr.querySelector('[data-m="qty"]').value, note: tr.querySelector('[data-m="note"]').value})) }
-  document.getElementById('btnGuardar').onclick=()=>{
-    const key='osi-'+$('#num').value;
-    const data={
-      fecha:$('#fecha').value,num:$('#num').value,encargado:$('#encargado').value,supervisor:$('#supervisor').value,
-      area:$('#area').value,lugar:$('#lugar').value,prio:$('#prio').value,
-      inicio:$('#inicio').value,fin:$('#fin').value,desc:$('#desc').value,mat:saveMat(),
-      asignados:(getCat()||[]).filter(p=>p.picked)
-    };
-    ls(key,data); alert('Guardado local: '+key);
-  };
-
-  // === Forzar refresco caché ===
-  document.getElementById('force').onclick=async(e)=>{ e.preventDefault(); try{ if('caches'in window){const keys=await caches.keys(); await Promise.all(keys.map(k=>caches.delete(k)));} if('serviceWorker'in navigator){const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(r=>r.unregister()));} }catch(_){}
-    location.href='index.html?v=22s7&updated='+Date.now();
-  };
-
-  // === Login (PIN) ===
-  const enc=(s)=>new TextEncoder().encode(s);
-  function pbkdf2(pin,salt,it){return crypto.subtle.importKey('raw',enc(pin),'PBKDF2',false,['deriveBits']).then(k=>crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:it},k,256));}
-  const loadPins=()=>{const raw=localStorage.getItem('osi-pins'); if(raw) return JSON.parse(raw);
-    const init={encargado:{salt:Array.from(crypto.getRandomValues(new Uint8Array(16))),iterations:120000,hash:null},
-                supervisor:{salt:Array.from(crypto.getRandomValues(new Uint8Array(16))),iterations:120000,hash:null}};
-    return Promise.all([pbkdf2('1111',new Uint8Array(init.encargado.salt),init.encargado.iterations),
-                        pbkdf2('2222',new Uint8Array(init.supervisor.salt),init.supervisor.iterations)]).then(([hE,hS])=>{init.encargado.hash=Array.from(new Uint8Array(hE));init.supervisor.hash=Array.from(new Uint8Array(hS));localStorage.setItem('osi-pins',JSON.stringify(init));return init;})};
-  async function verify(role,pin){const pins=await loadPins(); const m=pins[role]; const bits=await pbkdf2(pin,new Uint8Array(m.salt),m.iterations); return JSON.stringify(Array.from(new Uint8Array(bits)))===JSON.stringify(m.hash);}
-  OSI_AUTH.init({ idleMs:60000, heartbeatMs:15000, endOnClose:true });
-  let role='encargado'; const badge=$('badgeRol');
-  document.getElementById('asEnc').onclick=()=>role='encargado'; document.getElementById('asSup').onclick=()=>role='supervisor';
-  document.getElementById('ok').onclick=async()=>{ const ok=await verify(role,$('#pin').value||''); if(!ok) return alert('PIN incorrecto'); OSI_AUTH.startSession(role,'',1/60); document.getElementById('login').style.display='none'; badge.textContent='ROL: '+role.toUpperCase(); };
-  try{OSI_AUTH.startSession('encargado','',60); badge.textContent='ROL: ENCARGADO'; document.getElementById('login').style.display='none';}catch(e){ console.warn(e);}
 });
