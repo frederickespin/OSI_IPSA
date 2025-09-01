@@ -3,7 +3,7 @@
 <html lang="es"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — International Packers (v22s3)</title>
+<title>OSI — International Packers (v22s5)</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d6efd">
 <style>
@@ -18,6 +18,7 @@
   .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
   .field label{display:block;font-size:12px;color:#344054;margin-bottom:6px}
   input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;min-height:40px}
+  input[readonly]{background:#f9fafb;color:#555}
   textarea{min-height:100px;resize:vertical}
   .section-title{font-weight:700;margin:14px 0 8px 0}
   .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -30,7 +31,7 @@
   .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3538cd;font-size:12px;font-weight:700}
   @media (max-width: 900px){.grid4{grid-template-columns:repeat(2,1fr)}}
   @media (max-width: 640px){.grid4,.grid2{grid-template-columns:1fr} .header{grid-template-columns:1fr;gap:10px} .header img{height:64px}}
-  @media print{.actions,.meta,#login,#modalPersonal{display:none} .container{max-width:100%;padding:0} .card{border:0;box-shadow:none;padding:0} }
+  @media print{.actions,.meta,#login,#modalAsignar{display:none} .container{max-width:100%;padding:0} .card{border:0;box-shadow:none;padding:0} }
 </style>
 </head><body>
   <div class="container">
@@ -45,9 +46,10 @@
       </div>
 
       <div class="grid4">
-        <div class="field"><label>Fecha</label><input id="fecha" type="date"></div>
+        <div class="field"><label>Fecha (día en curso)</label><input id="fecha" type="date" readonly></div>
         <div class="field"><label>Nº OSI</label><input id="num" readonly placeholder="OSI-00001"></div>
-        <div class="field"><label>Encargado (creador OSI)</label><select id="encargado"><option value="">—</option></select></div>
+        <div class="field"><label>Encargado</label><select id="encargado"><option value="">—</option></select></div>
+        <div class="field"><label>Supervisor</label><select id="supervisor"><option value="">—</option></select></div>
         <div class="field"><label>Departamento / Área</label><select id="area"><option>Almacén</option><option>Mantenimiento</option><option>Empaque</option><option>Operaciones</option><option>Administración</option></select></div>
         <div class="field"><label>Ubicación / Lugar</label><input id="lugar" placeholder="Ej.: Nave A, andén 3"></div>
         <div class="field"><label>Prioridad</label><select id="prio"><option>Baja</option><option>Media</option><option>Alta</option><option>Urgente</option></select></div>
@@ -65,7 +67,7 @@
       </table>
       <div class="actions"><button id="addMat">➕ Agregar ítem</button></div>
 
-      <div class="section-title">Personal asignado</div>
+      <div class="section-title">Personal asignado (Operarios)</div>
       <div class="actions">
         <button id="btnAsignar">👥 Seleccionar personal</button>
         <span id="asignadosResumen" class="sub"></span>
@@ -78,37 +80,27 @@
         <div class="field"><label>Firma</label><canvas id="firma" style="width:100%;height:180px;border:1px solid var(--border);border-radius:8px;background:#fff"></canvas><button id="clearFirma" style="margin-top:6px">🧽 Limpiar firma</button></div>
       </div>
 
-      <div class="actions" id="actionsEnc">
+      <div class="actions">
         <button id="btnGuardar" class="primary">💾 Guardar local</button>
         <button id="btnCompartir">🔗 Compartir por WhatsApp</button>
         <button id="btnImprimir">🖨️ Imprimir</button>
       </div>
       <div class="meta">
-        <a href="settings.html?v=22s3">⚙️ Configuración</a>
-        <span>Build 22s3 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></span>
+        <a href="settings.html?v=22s5">⚙️ Configuración</a>
+        <span>Build 22s5 • Si la vista no se actualiza: <span class="force"><a href="#" id="force">borrar caché</a></span></span>
       </div>
     </div>
   </div>
 
-  <!-- Modal de personal -->
-  <div id="modalPersonal" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:60">
-    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:760px;width:94%;padding:16px">
-      <h3 style="margin:0 0 8px 0">Catálogo de Personal</h3>
-      <div class="grid4">
-        <input id="pNombre" placeholder="Nombre y apellido">
-        <select id="pRol"><option>Operario</option><option>Supervisor</option><option>Encargado</option><option>Administración</option></select>
-        <label style="font-size:12px;align-self:center"><input type="checkbox" id="pCreador"> Creador OSI</label>
-        <button id="pAgregar" class="primary">Agregar</button>
-      </div>
-      <table style="margin-top:10px">
-        <thead><tr><th>✓</th><th>Nombre</th><th>Rol</th><th>Creador OSI</th><th>Activo</th><th>Acciones</th></tr></thead>
-        <tbody id="tbPersonal"></tbody>
-      </table>
-      <div class="actions"><button id="pCerrar">Cerrar</button></div>
+  <div id="modalAsignar" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:60">
+    <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:560px;width:94%;padding:16px">
+      <h3 style="margin:0 0 8px 0">Seleccionar personal (Operarios)</h3>
+      <div id="listChecks" style="max-height:50vh;overflow:auto;padding:6px 2px;border:1px solid var(--border);border-radius:8px;background:#fff"></div>
+      <div class="actions" style="margin-top:10px"><button id="selGuardar" class="primary">Aplicar</button><button id="selCerrar">Cerrar</button></div>
+      <p class="sub" style="margin:6px 0 0 0">Para editar el catálogo de personal: ve a ⚙️ Configuración → Gestionar personal.</p>
     </div>
   </div>
 
-  <!-- Login -->
   <div id="login" style="position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:70">
     <div style="background:#fff;border:1px solid var(--border);border-radius:12px;max-width:420px;width:92%;padding:16px">
       <h3 style="margin:0 0 8px 0">Acceso</h3>
@@ -118,7 +110,7 @@
     </div>
   </div>
 
-  <script src="auth.js?v=22s3"></script>
-  <script src="app.js?v=22s3"></script>
+  <script src="auth.js?v=22s5"></script>
+  <script src="app.js?v=22s5"></script>
   <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')};</script>
 </body></html>
