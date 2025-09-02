@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — Asignación + Evidencia (Supervisor) (v1k)</title>
+<title>OSI — Asignación + Evidencia (Supervisor) v1k</title>
 <meta name="theme-color" content="#0d6efd">
 <style>
-:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --primary-600:#0b5ed7; --card:#fff; --danger:#b42318; --fs:clamp(13px,3.6vw,15px); --fs-sm:clamp(12px,3.2vw,14px); --r:16px; --cb:16px; }
+:root{
+  --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --primary-600:#0b5ed7;
+  --card:#fff; --danger:#b42318;
+  --fs:clamp(13px,3.6vw,15px); --fs-sm:clamp(12px,3.2vw,14px); --r:16px; --cb:16px;
+}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
 .container{max-width:1040px;margin:18px auto;padding:0 12px 96px}
@@ -30,7 +34,9 @@ select.msel option{padding:6px 8px;line-height:1.2}
 .counter{color:#344054;background:#eff1f5;border:1px solid #e3e6ec;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:var(--fs-sm)}
 .badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
-.bottom-nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(8px);border-top:1px solid var(--border);padding:8px 14px calc(8px + env(safe-area-inset-bottom));z-index:80}
+/* bottom nav */
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);backdrop-filter:saturate(180%) blur(8px);
+  border-top:1px solid var(--border);padding:8px 14px calc(8px + env(safe-area-inset-bottom));z-index:80}
 .bottom-nav .row{display:flex;justify-content:space-around;gap:8px}
 .icon-btn{width:64px;height:44px;border-radius:12px;border:1px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer}
 .icon-btn.plus{background:#0d6efd;border-color:#0d6efd;color:#fff;box-shadow:0 1px 0 rgba(13,110,253,.2)}
@@ -48,9 +54,89 @@ select.msel option{padding:6px 8px;line-height:1.2}
 .task-card .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
 .task-card .thumb{max-width:140px;max-height:140px;border:1px solid var(--border);border-radius:10px;display:block}
 .photo-ctrls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-@media (min-width:720px){ .header{grid-template-columns:auto 1fr}.header img{height:68px} .grid4{grid-template-columns:repeat(4,1fr)} .container{padding:0 16px 96px}.card{padding:20px} }
+@media (min-width:720px){
+  .header{grid-template-columns:auto 1fr}.header img{height:68px}
+  .grid4{grid-template-columns:repeat(4,1fr)}
+  .container{padding:0 16px 96px}.card{padding:20px}
+}
 </style>
 </head><body>
-<div class="container">
-<div class="card">
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <div class="row">
+          <img src="logo.png" alt="Logo International Packers">
+          <div>
+            <h1>ORDEN DE SERVICIO INTERNA</h1>
+            <div class="sub">Gestión de personal • Build v1k</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid4">
+        <div class="field"><label>Fecha (día en curso)</label><input id="fecha" type="date" readonly></div>
+        <div class="field"><label>Nº OSI</label><input id="num" readonly placeholder="OSI-00001"></div>
+        <div class="field"><label>Encargado</label><select id="encargado"><option value="">—</option></select></div>
+        <div class="field"><label>Supervisor</label><select id="supervisor"><option value="">—</option></select></div>
+      </div>
+
+      <div class="section-title">Prioridad</div>
+      <select id="prioridad"><option>Baja</option><option>Media</option><option>Alta</option><option>Urgente</option></select>
+
+      <div class="grid4" style="grid-template-columns:1fr 1fr">
+        <div class="field"><label>Inicio programado</label><input id="iniProg" type="datetime-local"></div>
+        <div class="field"><label>Fin programado</label><input id="finProg" type="datetime-local"></div>
+      </div>
+
+      <div class="section-title">Descripción / Instrucciones</div>
+      <textarea id="desc" placeholder="Describe claramente la tarea a realizar, restricciones, riesgos y cualquier instrucción específica."></textarea>
+
+      <div class="section-title">Materiales / Herramientas</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead><tbody id="tbMat"></tbody></table></div>
+      <div style="margin-top:8px"><button id="matAdd" class="icon-btn" title="Agregar ítem">＋</button></div>
+
+      <div class="section-title">Personal asignado (Operarios)</div>
+      <div id="asignadosResumen" class="counter"></div>
+      <ul id="asignadosLista" style="padding-left:18px"></ul>
+
+      <div class="section-title">Asignación de tareas por persona</div>
+      <div id="tareasWrap"></div>
+    </div>
+  </div>
+
+  <div class="bottom-nav"><div class="row">
+    <button class="icon-btn plus" id="navGestion" title="Registrar/Editar/Seleccionar personal">+</button>
+    <button class="icon-btn" id="navShare" title="Compartir">🔗</button>
+    <button class="icon-btn" id="navPrint" title="Imprimir">🖨️</button>
+    <button class="icon-btn" id="navConfig" title="Configuración">⚙️</button>
+  </div></div>
+
+  <!-- Modal Gestión de personal (también selección) -->
+  <div id="modalGestion" class="overlay">
+    <div class="modal">
+      <div class="head">Registrar / Editar personal (marque para asignar)</div>
+      <div class="body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input id="empNum" class="tbl-input" placeholder="No. de empleado">
+          <input id="empNombre" class="tbl-input" placeholder="Nombre y apellido">
+        </div>
+        <div class="field" style="margin-top:8px">
+          <label>Roles del empleado (multi-select)</label>
+          <select id="empRolesSel" class="msel" multiple size="6"></select>
+        </div>
+        <div style="margin-top:8px"><button id="empAgregar" class="btn btn-primary">Agregar</button></div>
+
+        <input id="busca" class="tbl-input" placeholder="Buscar en personal (nombre, número o rol)" style="margin:8px 0">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th style="width:42px">Asignar</th><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th></tr></thead>
+            <tbody id="tbPersonal"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="foot"><button id="gAplicar" class="btn btn-primary">Aplicar y cerrar</button><button id="gCerrar" class="btn">Cerrar</button></div>
+    </div>
+  </div>
+
+  <script src="app.js?v=v1k"></script>
 </body></html>
