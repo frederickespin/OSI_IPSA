@@ -1,66 +1,33 @@
-(function(){
-const ROLES_KEY='osi-roles-master-v1';
-const CORE_ROLES=['Encargado','Supervisor'];
-const $=id=>document.getElementById(id);
-const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
-const ping=(k)=>{ try{ localStorage.setItem(k, String(Date.now())); }catch(_){} };
-
-
-function ensureRoles(){
-let roles = ls(ROLES_KEY);
-if(!Array.isArray(roles) || roles.length===0){
-roles = ['Encargado','Supervisor','Chofer','Empacador','Mecánico','Carpintero','Operario','Mantenimiento'];
-} else {
-CORE_ROLES.forEach(r=>{ if(!roles.includes(r)) roles.unshift(r); });
-if(!roles.includes('Mantenimiento')) roles.push('Mantenimiento');
-roles = Array.from(new Set(roles.map(r=>String(r).trim()).filter(Boolean)));
-}
-ls(ROLES_KEY, roles); return roles;
-}
-function getRoles(){ return ensureRoles(); }
-function setRoles(a){ ls(ROLES_KEY, Array.from(new Set(a))); ping('osi-roles-ping'); }
-
-
-function renderRolesTable(){
-const tb=document.getElementById('tbRoles'); tb.innerHTML='';
-getRoles().forEach((r,i)=>{
-const isCore = CORE_ROLES.includes(r);
-const tr=document.createElement('tr');
-tr.innerHTML = `<td>${r}</td>
-<td>${isCore? '<span class="sub" style="color:#999">Fijo</span>' :
-'<button data-act="edit" data-i="'+i+'">Renombrar</button> <button data-act="del" data-i="'+i+'" style="color:#b42318">Eliminar</button>'}</td>`;
-tb.appendChild(tr);
-});
-}
-function addRole(name){
-name = String(name||'').trim();
-if(!name) return alert('Escribe un nombre de rol');
-const roles = getRoles();
-if(roles.includes(name)) return alert('Ese rol ya existe');
-roles.push(name); setRoles(roles); renderRolesTable();
-}
-function editRole(idx){
-const roles=getRoles();
-const old=roles[idx]; if(CORE_ROLES.includes(old)) return alert('Este rol es fijo');
-const name=prompt('Nuevo nombre para el rol:', old);
-if(!name) return; const n=name.trim(); if(!n) return;
-if(roles.includes(n)) return alert('Ese nombre ya existe');
-roles[idx]=n; setRoles(roles); renderRolesTable();
-}
-function delRole(idx){
-const roles=getRoles();
-const r=roles[idx]; if(CORE_ROLES.includes(r)) return alert('Este rol es fijo');
-if(!confirm('Eliminar rol "'+r+'"?')) return;
-roles.splice(idx,1); setRoles(roles); renderRolesTable();
-}
-document.addEventListener('click',(e)=>{
-const i=e.target.getAttribute('data-i'); if(i===null) return;
-const act=e.target.getAttribute('data-act');
-if(act==='edit') editRole(parseInt(i,10));
-if(act==='del') delRole(parseInt(i,10));
-});
-document.getElementById('roleAdd').onclick=()=>addRole(document.getElementById('roleNew').value);
-
-
-renderRolesTable();
-})();
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuración — Roles y Personal (v1k)</title>
+<style>
+:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --fs:clamp(13px,3.6vw,15px); }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
+.container{max-width:960px;margin:18px auto;padding:0 12px 32px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:14px}
+.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:14px;background:#fff}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid #eef0f3;padding:8px;text-align:left}
+.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+input{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
+.sub{color:#667085;font-size:12px}
+</style>
+</head><body>
+<div class="container">
+<div class="card">
+<h2>Roles del sistema</h2>
+<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
+<input id="roleNew" placeholder="Nuevo rol (ej. Mantenimiento)">
+<button id="roleAdd" class="btn btn-primary">Añadir</button>
+</div>
+<div class="tbl-wrap" style="margin-top:10px">
+<table><thead><tr><th>Rol</th><th style="width:180px">Acciones</th></tr></thead><tbody id="tbRoles"></tbody></table>
+</div>
+<div style="margin-top:10px"><a href="index.html?v=v1k">← Volver al formulario</a></div>
+</div>
+</div>
+<script src="settings.js?v=v1k"></script>
+</body></html>
