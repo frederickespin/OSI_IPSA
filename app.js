@@ -7,23 +7,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   const SEQ_KEY='osi-seq';
   const CURR_KEY='osi-current-id';
   const DRAFT_PREFIX='osi-draft-';
+  const HIST_KEY='osi-hist-v1';
 
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-  /* ===== Sesión: 1 min de inactividad ===== */
+  /* ===== Sesión: 1 min inactivo ===== */
   let idleTimer=null;
   function resetIdle(){
     if(idleTimer) clearTimeout(idleTimer);
     idleTimer=setTimeout(()=>{ try{sessionStorage.removeItem('enc-session');}catch(_){}
-      alert('Sesión cerrada por inactividad.');
-      location.replace('login.html'); }, 60*1000);
+      alert('Sesión cerrada por inactividad.'); location.replace('login.html'); }, 60*1000);
   }
   ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
   resetIdle();
   $('logoutBtn')?.addEventListener('click',()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); });
 
-  /* ===== Utilidades ===== */
+  /* ===== Utils ===== */
   const b64u={ enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
   const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const pad=(n,w)=>String(n).padStart(w,'0');
   const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
 
-  /* ===== Numeración ===== */
+  /* ===== Numeración / ID actual ===== */
   function currentSeq(){ return parseInt(localStorage.getItem(SEQ_KEY)||'3',10); }
   function setSeq(n){ localStorage.setItem(SEQ_KEY, String(n)); }
   function setCurrentId(id){ localStorage.setItem(CURR_KEY,id); }
@@ -52,10 +52,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  /* ===== Catálogo de personal ===== */
+  /* ===== Personal ===== */
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); }
-
   if(!ls(CAT_KEY)){
     setCat([
       {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
@@ -69,7 +68,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       {num:'F-01',  nombre:'Freder Encargado', roles:['Encargado'], activo:true}
     ]);
   }
-
   function byRole(role){ return getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role)); }
   function fillSelectByRole(id, role){
     const sel=$(id); if(!sel) return;
@@ -100,14 +98,12 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  /* ===== Gestión / selección (modal) ===== */
+  /* ===== Modal gestión personal ===== */
   const modalGest=$('modalGestion'), empRolesSel=$('empRolesSel'), tb=$('tbPersonal');
-
   function fillRolesMulti(selEl, selected){
     const roles=getRoles(); const set=new Set(selected||[]);
     selEl.innerHTML=roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
   }
-
   function renderTabla(filter=''){
     const cat=getCat(); const q=(filter||'').toLowerCase(); tb.innerHTML='';
     cat.forEach((p,i)=>{
@@ -124,11 +120,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       tb.appendChild(tr);
     });
   }
-
   $('navGestion').onclick=()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); };
   $('gCerrar').onclick=()=>{ modalGest.style.display='none'; };
   $('gAplicar').onclick=()=>{ modalGest.style.display='none'; showAsignados(); saveDraft(); };
-
   $('empAgregar').onclick=()=>{
     const num=$('empNum').value.trim(), nombre=$('empNombre').value.trim();
     const roles=[...empRolesSel.selectedOptions].map(o=>o.value);
@@ -139,7 +133,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderTabla(); refreshEncSup();
   };
   $('busca').addEventListener('input',e=>renderTabla(e.target.value||''));
-
   document.addEventListener('change',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
@@ -162,6 +155,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
+  /* ===== Historial ===== */
+  function histAll(){ return ls(HIST_KEY)||[] }
+  function histUpsert(rec){
+    const all=histAll().filter(x=>x.id!==rec.id); all.push({...rec, updatedAt:Date.now()});
+    ls(HIST_KEY, all.sort((a,b)=>String(a.id).localeCompare(String(b.id))));
+  }
+
   /* ===== Autosave por OSI ===== */
   function saveDraft(){
     const id=$('num').value.trim(); if(!id) return;
@@ -180,34 +180,43 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     localStorage.setItem(DRAFT_PREFIX+id, JSON.stringify(draft));
     setCurrentId(id);
+    histUpsert({
+      id,
+      fecha:draft.fecha,
+      prioridad:draft.prioridad,
+      encargado:draft.encargado, supervisor:draft.supervisor,
+      personal:(draft.asignados||[]).length,
+      estado:(getReports()[id]?'Con reporte':'Borrador')
+    });
   }
   function restoreDraft(){
     const cid=getCurrentId();
     if(cid){ showNum(cid); } else { showNum(); }
-    refreshEncSup(); // llena selects antes de setear valores
+    refreshEncSup(); // llenar selects
 
     const id=$('num').value.trim();
     const raw=localStorage.getItem(DRAFT_PREFIX+id);
-    if(!raw) return renderMats(), showAsignados();
-    try{
-      const d=JSON.parse(raw);
-      if(d.fecha) $('fecha').value=d.fecha;
-      if(d.prioridad) $('prioridad').value=d.prioridad;
-      $('iniHora').value=d.iniHora||'';
-      $('finHora').value=d.finHora||'';
-      $('desc').value=d.desc||'';
-      if(d.encargado) $('encargado').value=d.encargado;
-      if(d.supervisor) $('supervisor').value=d.supervisor;
-      if(Array.isArray(d.materiales)){ ls(MATS_KEY,d.materiales); }
-      if(Array.isArray(d.asignados)){
-        const cat=getCat().map(p=>({...p, picked:d.asignados.includes(p.num)}));
-        setCat(cat);
-      }
-    }catch(_){}
+    if(raw){
+      try{
+        const d=JSON.parse(raw);
+        if(d.fecha) $('fecha').value=d.fecha;
+        if(d.prioridad) $('prioridad').value=d.prioridad;
+        $('iniHora').value=d.iniHora||'';
+        $('finHora').value=d.finHora||'';
+        $('desc').value=d.desc||'';
+        if(d.encargado) $('encargado').value=d.encargado;
+        if(d.supervisor) $('supervisor').value=d.supervisor;
+        if(Array.isArray(d.materiales)){ ls(MATS_KEY,d.materiales); }
+        if(Array.isArray(d.asignados)){
+          const cat=getCat().map(p=>({...p, picked:d.asignados.includes(p.num)}));
+          setCat(cat);
+        }
+      }catch(_){}
+    }
     renderMats(); showAsignados();
   }
 
-  /* ===== Payload para supervisor (hash) ===== */
+  /* ===== Payload supervisor (hash) ===== */
   function buildPayload(){
     const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
     return {
@@ -221,7 +230,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=>(m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v:'v1u'
+      v:'v1w'
     };
   }
 
@@ -236,6 +245,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
+    // marcar como enviada
+    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
   }
   async function copyLink(){
     saveDraft();
@@ -245,17 +256,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     const supURL=new URL('supervisor.html#d='+d, new URL('.',location.href)).href;
     try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
     catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
+    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
   }
 
   /* ===== Reportes importados ===== */
   function getReports(){ return ls(REPORTS_KEY)||{} }
   function setReports(m){ ls(REPORTS_KEY,m) }
-
   function openReportView(print=false){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id]; if(!rep) return alert('No hay reporte cargado.');
-    const win=window.open('','_blank');
     const imgs=(rep.photos||[]).map(src=>`<img src="${src}" style="max-width:260px;max-height:260px;margin:6px;border:1px solid #ddd;border-radius:8px">`).join('');
-    win.document.write(`<title>Reporte ${rep.osiId}</title><body style="font-family:system-ui,Segoe UI,Roboto,Arial">
+    const html=`<title>Reporte ${rep.osiId}</title><body style="font-family:system-ui,Segoe UI,Roboto,Arial">
       <h2>Reporte del supervisor — ${rep.osiId}</h2>
       <p><b>Fecha:</b> ${rep.fecha} &nbsp; <b>Supervisor:</b> ${rep.supervisor?.nombre||rep.supervisor?.num||''}</p>
       <h3>Resumen (original)</h3><pre style="white-space:pre-wrap">${rep.summary||''}</pre>
@@ -263,20 +273,19 @@ document.addEventListener('DOMContentLoaded',()=>{
       <h3>Situaciones / Incidencias</h3><pre style="white-space:pre-wrap">${rep.issues||''}</pre>
       <h3>Fotos</h3><div>${imgs||'<i>Sin fotos</i>'}</div>
       <script>window.onload=function(){ ${print?'setTimeout(()=>window.print(),300);':''} }<\/script>
-      </body>`); 
-    win.document.close();
+      </body>`;
+    const win=window.open('','_blank'); win.document.write(html); win.document.close();
   }
-
   function refreshReportStatus(){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id];
     const st=$('reportStatus'), vr=$('viewReport'), cr=$('clearReport'), pr=$('printReport');
-    if(rep){ st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`; 
+    if(rep){ st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`;
       vr.style.display=cr.style.display=pr.style.display='inline-block';
-    } else { st.textContent='Sin reporte importado aún.'; 
-      vr.style.display=cr.style.display=pr.style.display='none';
-    }
+      // actualizar historial
+      const d=JSON.parse(localStorage.getItem(DRAFT_PREFIX+id)||'{}');
+      histUpsert({ id, fecha:d.fecha||today(), prioridad:d.prioridad||'Media', encargado:d.encargado||'', supervisor:d.supervisor||'', personal:(d.asignados||[]).length||0, estado:'Con reporte' });
+    } else { st.textContent='Sin reporte importado aún.'; vr.style.display=cr.style.display=pr.style.display='none'; }
   }
-
   $('importReport').addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     try{
@@ -300,6 +309,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('iniHora').value=''; $('finHora').value=''; $('desc').value=''; $('prioridad').value='Baja'; setToday();
     $('reportStatus').textContent='Sin reporte importado aún.';
     localStorage.removeItem(DRAFT_PREFIX+id); saveDraft();
+    histUpsert({ id, fecha:today(), prioridad:'Baja', encargado:'', supervisor:'', personal:0, estado:'Borrador' });
   }
 
   /* ===== Eventos ===== */
@@ -307,7 +317,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('navPrint').onclick=()=>window.print();
   $('navConfig').onclick=()=>{ location.href='settings.html'; };
   $('newOsiBtn').onclick=newOSI;
-
   ['prioridad','iniHora','finHora','desc','encargado','supervisor'].forEach(id=>{
     $(id).addEventListener('change',saveDraft);
     if(id==='desc') $(id).addEventListener('input',saveDraft);
@@ -315,9 +324,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* ===== Init ===== */
   ensureRoles();
-  restoreDraft();      // restaura todo lo último de esta OSI
-  renderMats();        // por si no había draft
+  restoreDraft();
+  renderMats();
   showAsignados();
-  refreshEncSup();     // repopula selects por si roles cambiaron
+  refreshEncSup();
   refreshReportStatus();
 });
+

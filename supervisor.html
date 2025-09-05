@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — Supervisor (reporte y evidencia)</title>
+<title>OSI — Supervisor</title>
 <meta name="theme-color" content="#0d6efd">
 <style>
 :root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --card:#fff; --fs:clamp(13px,3.6vw,15px); }
@@ -22,6 +22,7 @@ textarea{min-height:120px;resize:vertical}
 .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:720px){ .grid2{grid-template-columns:1fr} }
+.tip{background:#f0f6ff;border:1px solid #dbe7ff;color:#0b5ed7;padding:10px;border-radius:10px;font-size:12px}
 </style>
 </head><body>
   <div class="container">
@@ -30,7 +31,7 @@ textarea{min-height:120px;resize:vertical}
         <img src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';" />
         <div>
           <h1>Reporte del Supervisor</h1>
-          <div class="sub">Recibe instrucciones, reporta ejecución y adjunta evidencia</div>
+          <div class="sub">Completa texto y fotos, luego **Enviar reporte** para el Encargado.</div>
         </div>
       </div>
 
@@ -48,6 +49,7 @@ textarea{min-height:120px;resize:vertical}
 
       <div class="field" style="margin-top:10px">
         <label>Fotos de comprobación (puedes tomar varias)</label>
+        <div class="tip">Consejo: añade 3–6 fotos. Se comprimen para enviarse dentro del archivo.</div>
         <div style="display:flex; gap:8px; flex-wrap:wrap" id="photosWrap"></div>
         <div style="margin-top:8px">
           <input id="photoInput" type="file" accept="image/*" capture="environment" multiple>
@@ -55,14 +57,14 @@ textarea{min-height:120px;resize:vertical}
       </div>
 
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px">
-        <button id="exportJson" class="btn btn-primary">Exportar reporte (.json)</button>
-        <button id="shareReport" class="btn">Compartir reporte</button>
-        <button id="waText" class="btn">Enviar resumen por WhatsApp</button>
+        <button id="shareReport" class="btn btn-primary">Enviar/Compartir reporte</button>
+        <button id="exportJson" class="btn">Descargar (.json)</button>
+        <button id="waText" class="btn">Enviar solo texto</button>
       </div>
 
       <div class="sub" id="hint" style="margin-top:10px;color:#475467"></div>
     </div>
   </div>
 
-  <script src="supervisor.js?v=v1t"></script>
+  <script src="supervisor.js?v=v1w"></script>
 </body></html>
