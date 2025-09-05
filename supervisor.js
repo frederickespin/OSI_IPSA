@@ -2,14 +2,13 @@
   const $=id=>document.getElementById(id);
   function b64uDec(s){ return decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))); }
 
-  // Lee datos desde ?d=... o #d=...
   function getPayloadFromURL(){
     const qs=new URLSearchParams(location.search);
     let d=qs.get('d');
     if(!d && location.hash){
       const h=location.hash.startsWith('#')? location.hash.slice(1) : location.hash;
       const hs=new URLSearchParams(h);
-      d=hs.get('d') || h; // si viene solo el valor después de #
+      d=hs.get('d') || h;
     }
     if(!d) return null;
     try{ return JSON.parse(b64uDec(d)); }catch(_){ return null; }

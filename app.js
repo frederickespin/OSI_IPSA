@@ -8,11 +8,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
+  // ---- sesión (1 minuto de inactividad) ----
+  let idleTimer=null;
+  function resetIdle(){
+    if(idleTimer) clearTimeout(idleTimer);
+    idleTimer=setTimeout(()=>{ try{sessionStorage.removeItem('enc-session');}catch(_){}
+      alert('Sesión cerrada por inactividad.');
+      location.replace('login.html'); }, 60*1000);
+  }
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
+  resetIdle();
+  $('logoutBtn').onclick=()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); };
+
   // helpers
   const b64u={ enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
   const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
-  setToday(); setTimeout(setToday,100);
+  setToday(); setTimeout(setToday,80);
   const pad=(n,w)=>String(n).padStart(w,'0');
   const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
 
@@ -32,15 +44,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       if(!roles.includes('Mantenimiento')) roles.push('Mantenimiento');
       roles=[...new Set(roles.map(r=>String(r).trim()).filter(Boolean))];
     }
-    ls(ROLES_KEY,roles); try{localStorage.setItem('osi-roles-ping',String(Date.now()));}catch(_){}
-    return roles;
+    ls(ROLES_KEY,roles); return roles;
   }
   const getRoles=()=>ensureRoles();
 
   // catálogo
   function getCat(){ return ls(CAT_KEY)||[] }
-  function setCat(a){ ls(CAT_KEY,a); try{localStorage.setItem('osi-cat-ping', String(Date.now()));}catch(_){ } }
-
+  function setCat(a){ ls(CAT_KEY,a); }
   if(!ls(CAT_KEY)){
     setCat([
       {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
@@ -49,7 +59,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       {num:'E-200', nombre:'Elena Empacadora', roles:['Empacador','Operario'], activo:true},
       {num:'M-300', nombre:'Mario Mecánico', roles:['Mecánico','Operario'], activo:true},
       {num:'K-400', nombre:'Karla Carpintera', roles:['Carpintero','Operario'], activo:true},
-      {num:'MT-500', nombre:'Miguel Mantenimiento', roles:['Mantenimiento','Operario'], activo:true}
+      {num:'MT-500', nombre:'Miguel Mantenimiento', roles:['Mantenimiento','Operario'], activo:true},
+      {num:'V-101', nombre:'Víctor Mantenimiento', roles:['Mantenimiento','Operario'], activo:true},
+      {num:'F-01',  nombre:'Freder Encargado', roles:['Encargado'], activo:true}
     ]);
   }
 
@@ -83,7 +95,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // gestión / selección
+  // gestión / selección (modal)
   const modalGest=$('modalGestion'), empRolesSel=$('empRolesSel'), tb=$('tbPersonal');
 
   function fillRolesMulti(selEl, selected){
@@ -145,7 +157,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  // payload
+  // payload para supervisor
   function buildPayload(){
     const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
     return {
@@ -159,35 +171,33 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=>(m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v:'v1s'
+      v:'v1t'
     };
   }
 
-  // compartir (usa hash)
+  // compartir (usa HASH #d=...)
   function shareLink(){
     const p=buildPayload();
     if(!p.id) return alert('Falta el Nº OSI.');
     if(!p.supervisor.num) return alert('Selecciona un Supervisor.');
     const d=b64u.enc(JSON.stringify(p));
     const base=new URL('.',location.href);
-    const supURL=new URL('supervisor.html#d='+d, base).href; // HASH en lugar de query
+    const supURL=new URL('supervisor.html#d='+d, base).href;
     const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
   }
 
-  // copiar enlace
   async function copyLink(){
     const p=buildPayload();
     if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
     const d=b64u.enc(JSON.stringify(p));
-    const base=new URL('.',location.href);
-    const supURL=new URL('supervisor.html#d='+d, base).href;
+    const supURL=new URL('supervisor.html#d='+d, new URL('.',location.href)).href;
     try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
     catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
   }
 
-  // reportes
+  // reportes importados
   function getReports(){ return ls(REPORTS_KEY)||{} }
   function setReports(m){ ls(REPORTS_KEY,m) }
   function refreshReportStatus(){
@@ -233,7 +243,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // eventos
   $('navShare').onclick=shareLink; $('navCopy').onclick=copyLink;
   $('navPrint').onclick=()=>window.print();
-  $('navConfig').onclick=()=>{ window.location.href='settings.html?v=v1s'; };
+  $('navConfig').onclick=()=>{ location.href='login.html#cambiar'; }; // acceso rápido a cambiar PIN
   $('newOsiBtn').onclick=newOSI;
 
   // init
