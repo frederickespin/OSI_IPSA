@@ -7,18 +7,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-  // ---- util ----
+  // --- helpers ---
   const b64u = {
-    enc: s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''),
-    dec: s => decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))))
+    enc: s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')
   };
   const today = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
   setToday(); setTimeout(setToday,100);
   const pad=(n,w)=>String(n).padStart(w,'0'); const seq=()=>parseInt(localStorage.getItem('osi-seq')||'3',10);
   if($('num')) $('num').value='OSI-'+pad(seq(),5);
+  const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
 
-  // ---- roles base ----
+  // --- roles ---
   function ensureRoles(){
     let roles = ls(ROLES_KEY);
     if(!Array.isArray(roles) || roles.length===0){
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  // ---- catálogo personal ----
+  // --- catálogo personal ---
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); try{localStorage.setItem('osi-cat-ping', String(Date.now()));}catch(_){ } }
 
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function refreshEncSup(){ fillSelectByRole('encargado','Encargado'); fillSelectByRole('supervisor','Supervisor'); }
 
-  // ---- materiales ----
+  // --- materiales ---
   function mats(){ return ls(MATS_KEY)||[] }
   function setMats(a){ ls(MATS_KEY,a) }
   function renderMats(){
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // ---- gestión / selección ----
+  // --- gestión / selección ---
   const modalGest=$('modalGestion');
   const empRolesSel=$('empRolesSel');
   const tb=$('tbPersonal');
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // ---- resumen asignados ----
+  // --- resumen asignados ---
   function showAsignados(){
     const sel = getCat().filter(p=>p.picked);
     const ul=$('asignadosLista'); const rs=$('asignadosResumen');
@@ -143,10 +143,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  // ---- generar enlace para Supervisor ----
+  // --- payload para supervisor ---
   function buildPayload(){
     const getNameByNum = (num)=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre: ''; };
-    const payload = {
+    return {
       id: ($('num')?.value||'').trim(),
       fecha: $('fecha')?.value||today(),
       prioridad: $('prioridad')?.value||'Media',
@@ -157,31 +157,48 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=> (m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v: 'v1m'
+      v: 'v1p'
     };
-    return payload;
   }
+
+  // --- compartir por WhatsApp / share sheet ---
   function shareLink(){
-  const p = buildPayload();
-  if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y selecciona un Supervisor.'); return; }
-  const json = JSON.stringify(p);
-  const d = b64u.enc(json);
-  // base robusta (directorio actual)
-  const base = new URL('.', location.href);           // p.ej. .../OSI_IPSA/
-  const link = new URL('supervisor.html?d='+d, base); // .../OSI_IPSA/supervisor.html?d=...
-  const text = `OSI ${p.id} — Instrucciones para hoy (${p.fecha})
+    const p = buildPayload();
+    if(!p.id){ alert('Falta el Nº OSI.'); return; }
+    if(!p.supervisor.num){ alert('Selecciona un Supervisor.'); return; }
+    const d = b64u.enc(JSON.stringify(p));
+    const base = new URL('.', location.href);
+    const supURL = new URL('supervisor.html?d='+d, base).href;
+    const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})
 Supervisor: ${p.supervisor.nombre||p.supervisor.num}
-Abrir: ${link.href}`;
-  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
-}
+Abrir: ${supURL}`;
 
+    if(navigator.share){
+      navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{});
+    } else {
+      window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
+    }
+  }
 
-  $('shareSupervisor').onclick=shareLink;
-  $('navShare').onclick=shareLink;
-  $('navPrint').onclick=()=>window.print();
-  $('navConfig').onclick=()=>{ window.location.href='settings.html?v=v1m'; };
+  // --- copiar enlace al portapapeles ---
+  async function copyLink(){
+    const p = buildPayload();
+    if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
+    const d = b64u.enc(JSON.stringify(p));
+    const base = new URL('.', location.href);
+    const supURL = new URL('supervisor.html?d='+d, base).href;
+    try{
+      await navigator.clipboard.writeText(supURL);
+      toast('Enlace copiado');
+    }catch(_){
+      // Fallback
+      const ta=document.createElement('textarea');
+      ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      toast('Enlace copiado');
+    }
+  }
 
-  // ---- importar y ver reporte del supervisor ----
+  // --- importar/ver/limpiar reportes ---
   function getReports(){ return ls(REPORTS_KEY)||{} }
   function setReports(m){ ls(REPORTS_KEY,m) }
   function refreshReportStatus(){
@@ -238,7 +255,12 @@ Abrir: ${link.href}`;
     win.document.close();
   };
 
-  // ---- init ----
+  // --- eventos barra inferior ---
+  $('navShare').onclick = shareLink;   // WhatsApp / share sheet
+  $('navCopy').onclick  = copyLink;    // Copiar enlace
+  $('navPrint').onclick = ()=>window.print();
+  $('navConfig').onclick= ()=>{ window.location.href='settings.html?v=v1p'; };
+
+  // init
   refreshEncSup(); renderMats(); showAsignados(); refreshReportStatus();
 });
-

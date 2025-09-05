@@ -1,11 +1,9 @@
 (function(){
   const $=id=>document.getElementById(id);
-  const params=new URLSearchParams(location.search);
 
-  // base64url decode
   function b64uDec(s){ return decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))); }
 
-  // payload desde ?d=...
+  const params=new URLSearchParams(location.search);
   let payload=null;
   try{
     const d=params.get('d');
@@ -16,7 +14,6 @@
     return;
   }
 
-  // resumen legible
   function summarize(p){
     const perso = (p.asignados||[]).map(x=>`${x.num} — ${x.nombre} — ${((x.roles||[])[0]||'')}`).join('\n');
     const mats = (p.materiales||[]).map(m=>`• ${m.item} — ${m.cant||''}`).join('\n');
@@ -41,7 +38,6 @@ ${mats||'—'}`
   const summaryText = summarize(payload);
   $('summary').textContent = summaryText;
 
-  // compresión de fotos
   const photos=[];
   function fileToDataURL(file, maxW=1280, cb){
     const reader=new FileReader();
@@ -64,7 +60,7 @@ ${mats||'—'}`
     });
   }
   $('photoInput').addEventListener('change',(e)=>{
-    const files=[...(e.target.files||[])].slice(0,8 - photos.length); // hasta 8
+    const files=[...(e.target.files||[])].slice(0,8 - photos.length);
     if(files.length===0) return;
     let left=files.length;
     files.forEach(f=>{
@@ -72,7 +68,6 @@ ${mats||'—'}`
     });
   });
 
-  // exportar y compartir
   function buildReport(){
     return {
       osiId: payload.id,
@@ -87,10 +82,7 @@ ${mats||'—'}`
   }
   function downloadJSON(obj, filename){
     const blob = new Blob([JSON.stringify(obj,null,2)], {type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=filename;
-    a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
   }
   $('exportJson').onclick=()=>{
