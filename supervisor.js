@@ -85,27 +85,42 @@ ${mats||'—'}`
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
   }
-  $('exportJson').onclick=()=>{
-    const rep=buildReport();
-    downloadJSON(rep, (rep.osiId||'OSI')+'_reporte_supervisor.json');
-    $('hint').textContent='Archivo descargado. Envíalo al encargado.';
-  };
 
-  $('shareReport').onclick=async ()=>{
-    const rep=buildReport();
-    const blob = new Blob([JSON.stringify(rep,null,2)], {type:'application/json'});
-    const file = new File([blob], (rep.osiId||'OSI')+'_reporte_supervisor.json', {type:'application/json'});
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      try{
-        await navigator.share({title:'Reporte OSI '+(rep.osiId||''), text:'Adjunto reporte del supervisor.', files:[file]});
-        $('hint').textContent='Reporte compartido desde el dispositivo.';
-      }catch(_){}
-    } else {
-      downloadJSON(rep, file.name);
-      $('hint').textContent='Tu navegador no permite compartir archivos directamente; se descargó el .json.';
+  // Exportar: siempre descarga (seguro en todos los móviles)
+  $('exportJson').onclick=()=>{
+    try{
+      const rep=buildReport();
+      downloadJSON(rep, (rep.osiId||'OSI')+'_reporte_supervisor.json');
+      $('hint').textContent='Archivo descargado. Envíalo al encargado.';
+    }catch(err){
+      alert('No se pudo exportar el reporte: '+err.message);
     }
   };
 
+  // Compartir: intenta share nativo, si no, descarga
+  $('shareReport').onclick=async ()=>{
+    const rep=buildReport();
+    try{
+      const blob = new Blob([JSON.stringify(rep,null,2)], {type:'application/json'});
+      const file = new File([blob], (rep.osiId||'OSI')+'_reporte_supervisor.json', {type:'application/json'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({title:'Reporte OSI '+(rep.osiId||''), text:'Adjunto reporte del supervisor.', files:[file]});
+        $('hint').textContent='Reporte compartido desde el dispositivo.';
+      } else if (navigator.share){
+        await navigator.share({title:'Reporte OSI '+(rep.osiId||''), text:'Adjunto reporte del supervisor.'});
+        $('hint').textContent='Compartido como texto. Además descarga el archivo.';
+        downloadJSON(rep, file.name);
+      } else {
+        downloadJSON(rep, file.name);
+        $('hint').textContent='Tu navegador no permite compartir directamente; se descargó el .json.';
+      }
+    }catch(err){
+      downloadJSON(rep, (rep.osiId||'OSI')+'_reporte_supervisor.json');
+      $('hint').textContent='Compartir falló; se descargó el .json.';
+    }
+  };
+
+  // WhatsApp (texto)
   $('waText').onclick=()=>{
     const txt = `Supervisor — OSI ${payload.id}\n\nResumen:\n${summaryText}\n\nReporte:\n${$('done').value||''}\n\nIncidencias:\n${$('issues').value||''}`;
     window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');

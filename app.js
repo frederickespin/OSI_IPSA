@@ -3,20 +3,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   const CAT_KEY='osi-personal-v1';
   const CORE_ROLES=['Encargado','Supervisor'];
   const MATS_KEY='osi-mats-v1';
-  const REPORTS_KEY='osi-reports-v1'; // Reportes recibidos del supervisor
+  const REPORTS_KEY='osi-reports-v1';
+  const SEQ_KEY='osi-seq';
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
   // --- helpers ---
-  const b64u = {
-    enc: s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')
-  };
+  const b64u = { enc: s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
   const today = ()=>{ const d=new Date(); const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
   setToday(); setTimeout(setToday,100);
-  const pad=(n,w)=>String(n).padStart(w,'0'); const seq=()=>parseInt(localStorage.getItem('osi-seq')||'3',10);
-  if($('num')) $('num').value='OSI-'+pad(seq(),5);
+  const pad=(n,w)=>String(n).padStart(w,'0');
   const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
+
+  // --- numeración OSI ---
+  function currentSeq(){ return parseInt(localStorage.getItem(SEQ_KEY)||'3',10); } // arranca en 3 si no existe
+  function setSeq(n){ localStorage.setItem(SEQ_KEY, String(n)); }
+  function showNum(){ if($('num')) $('num').value='OSI-'+pad(currentSeq(),5); }
+  showNum();
 
   // --- roles ---
   function ensureRoles(){
@@ -61,7 +65,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   // --- materiales ---
   function mats(){ return ls(MATS_KEY)||[] }
   function setMats(a){ ls(MATS_KEY,a) }
+  function ensureOneRow(){
+    const a=mats();
+    if(a.length===0){ setMats([{item:'',cant:''}]); }
+  }
   function renderMats(){
+    ensureOneRow();
     const tb=$('tbMat'); if(!tb) return; tb.innerHTML='';
     mats().forEach((m,i)=>{
       const tr=document.createElement('tr'); tr.innerHTML=`
@@ -98,8 +107,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       const rolesBadges=(p.roles||[]).map(r=>`<span class="badge badge-role">${r}</span>`).join(' ');
       const tr=document.createElement('tr'); tr.innerHTML=`
         <td style="text-align:center"><input class="sm selPick" type="checkbox" data-i="${i}" ${p.picked?'checked':''}></td>
-        <td><input class="tbl-input" data-i="${i}" data-k="num" value="${p.num||''}"></td>
-        <td><input class="tbl-input" data-i="${i}" data-k="nombre" value="${p.nombre||''}"></td>
+        <td class="empCell">
+            <span class="empCode">${p.num||''}</span>
+            <input class="tbl-input empName" data-i="${i}" data-k="nombre" value="${p.nombre||''}">
+        </td>
         <td>${rolesBadges}<br><small class="sub">(edita roles al agregar)</small></td>
         <td style="text-align:center"><input class="sm" type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>`;
       tb.appendChild(tr);
@@ -157,7 +168,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=> (m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v: 'v1p'
+      v: 'v1r'
     };
   }
 
@@ -191,7 +202,6 @@ Abrir: ${supURL}`;
       await navigator.clipboard.writeText(supURL);
       toast('Enlace copiado');
     }catch(_){
-      // Fallback
       const ta=document.createElement('textarea');
       ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
       toast('Enlace copiado');
@@ -255,11 +265,29 @@ Abrir: ${supURL}`;
     win.document.close();
   };
 
-  // --- eventos barra inferior ---
-  $('navShare').onclick = shareLink;   // WhatsApp / share sheet
-  $('navCopy').onclick  = copyLink;    // Copiar enlace
+  // --- Nueva OSI: incrementa consecutivo y limpia campos clave ---
+  function newOSI(){
+    setSeq(currentSeq()+1);
+    showNum();
+    // limpiar materiales a 1 fila vacía
+    setMats([{item:'',cant:''}]); renderMats();
+    // desmarcar personal
+    const cat=getCat().map(p=>({ ...p, picked:false }));
+    setCat(cat); showAsignados();
+    // horarios y texto
+    $('iniHora').value=''; $('finHora').value=''; $('desc').value='';
+    $('prioridad').value='Baja';
+    setToday();
+    // estado de reporte
+    $('reportStatus').textContent='Sin reporte importado aún.';
+  }
+
+  // --- eventos barra y toolbar ---
+  $('navShare').onclick = shareLink;
+  $('navCopy').onclick  = copyLink;
   $('navPrint').onclick = ()=>window.print();
-  $('navConfig').onclick= ()=>{ window.location.href='settings.html?v=v1p'; };
+  $('navConfig').onclick= ()=>{ window.location.href='settings.html?v=v1r'; };
+  $('newOsiBtn').onclick = newOSI;
 
   // init
   refreshEncSup(); renderMats(); showAsignados(); refreshReportStatus();
