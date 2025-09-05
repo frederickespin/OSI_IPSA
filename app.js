@@ -5,10 +5,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   const MATS_KEY='osi-mats-v1';
   const REPORTS_KEY='osi-reports-v1';
   const SEQ_KEY='osi-seq';
+  const CURR_KEY='osi-current-id';
+  const DRAFT_PREFIX='osi-draft-';
+
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-  // ---- sesión (1 minuto de inactividad) ----
+  /* ===== Sesión: 1 min de inactividad ===== */
   let idleTimer=null;
   function resetIdle(){
     if(idleTimer) clearTimeout(idleTimer);
@@ -18,9 +21,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
   resetIdle();
-  $('logoutBtn').onclick=()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); };
+  $('logoutBtn')?.addEventListener('click',()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); });
 
-  // helpers
+  /* ===== Utilidades ===== */
   const b64u={ enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
   const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
@@ -28,13 +31,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   const pad=(n,w)=>String(n).padStart(w,'0');
   const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
 
-  // numeración
+  /* ===== Numeración ===== */
   function currentSeq(){ return parseInt(localStorage.getItem(SEQ_KEY)||'3',10); }
   function setSeq(n){ localStorage.setItem(SEQ_KEY, String(n)); }
-  function showNum(){ if($('num')) $('num').value='OSI-'+pad(currentSeq(),5); }
-  showNum();
+  function setCurrentId(id){ localStorage.setItem(CURR_KEY,id); }
+  function getCurrentId(){ return localStorage.getItem(CURR_KEY); }
+  function showNum(id){ $('num').value=id || 'OSI-'+pad(currentSeq(),5); }
 
-  // roles
+  /* ===== Roles ===== */
   function ensureRoles(){
     let roles=ls(ROLES_KEY);
     if(!Array.isArray(roles)||roles.length===0){
@@ -48,9 +52,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  // catálogo
+  /* ===== Catálogo de personal ===== */
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); }
+
   if(!ls(CAT_KEY)){
     setCat([
       {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
@@ -73,7 +78,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function refreshEncSup(){ fillSelectByRole('encargado','Encargado'); fillSelectByRole('supervisor','Supervisor'); }
 
-  // materiales
+  /* ===== Materiales ===== */
   function mats(){ return ls(MATS_KEY)||[] }
   function setMats(a){ ls(MATS_KEY,a) }
   function ensureOneRow(){ const a=mats(); if(a.length===0){ setMats([{item:'',cant:''}]); } }
@@ -87,15 +92,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       tb.appendChild(tr);
     });
   }
-  $('matAdd').onclick=()=>{ const a=mats(); a.push({item:'',cant:''}); setMats(a); renderMats(); };
+  $('matAdd').onclick=()=>{ const a=mats(); a.push({item:'',cant:''}); setMats(a); renderMats(); saveDraft(); };
   document.addEventListener('input',(e)=>{
     if(e.target.hasAttribute('data-m')){
       const i=+e.target.getAttribute('data-m'); const k=e.target.getAttribute('data-k');
-      const a=mats(); if(!a[i]) return; a[i][k]=e.target.value; setMats(a);
+      const a=mats(); if(!a[i]) return; a[i][k]=e.target.value; setMats(a); saveDraft();
     }
   });
 
-  // gestión / selección (modal)
+  /* ===== Gestión / selección (modal) ===== */
   const modalGest=$('modalGestion'), empRolesSel=$('empRolesSel'), tb=$('tbPersonal');
 
   function fillRolesMulti(selEl, selected){
@@ -122,7 +127,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   $('navGestion').onclick=()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); };
   $('gCerrar').onclick=()=>{ modalGest.style.display='none'; };
-  $('gAplicar').onclick=()=>{ modalGest.style.display='none'; showAsignados(); };
+  $('gAplicar').onclick=()=>{ modalGest.style.display='none'; showAsignados(); saveDraft(); };
 
   $('empAgregar').onclick=()=>{
     const num=$('empNum').value.trim(), nombre=$('empNombre').value.trim();
@@ -138,7 +143,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.addEventListener('change',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
-    if(e.target.classList.contains('selPick')){ cat[idx].picked=e.target.checked; setCat(cat); return; }
+    if(e.target.classList.contains('selPick')){ cat[idx].picked=e.target.checked; setCat(cat); saveDraft(); return; }
     if(e.target.hasAttribute('data-k')){
       const k=e.target.getAttribute('data-k');
       if(e.target.type==='checkbox'){ cat[idx][k]=e.target.checked; } else { cat[idx][k]=e.target.value; }
@@ -146,7 +151,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  // resumen asignados
+  /* ===== Resumen asignados ===== */
   function showAsignados(){
     const sel=getCat().filter(p=>p.picked);
     const ul=$('asignadosLista'), rs=$('asignadosResumen');
@@ -157,7 +162,52 @@ document.addEventListener('DOMContentLoaded',()=>{
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  // payload para supervisor
+  /* ===== Autosave por OSI ===== */
+  function saveDraft(){
+    const id=$('num').value.trim(); if(!id) return;
+    const draft={
+      id,
+      fecha:$('fecha').value,
+      prioridad:$('prioridad').value,
+      iniHora:$('iniHora').value,
+      finHora:$('finHora').value,
+      desc:$('desc').value,
+      encargado:$('encargado').value,
+      supervisor:$('supervisor').value,
+      materiales:mats(),
+      asignados:getCat().filter(p=>p.picked).map(p=>p.num),
+      ts:Date.now()
+    };
+    localStorage.setItem(DRAFT_PREFIX+id, JSON.stringify(draft));
+    setCurrentId(id);
+  }
+  function restoreDraft(){
+    const cid=getCurrentId();
+    if(cid){ showNum(cid); } else { showNum(); }
+    refreshEncSup(); // llena selects antes de setear valores
+
+    const id=$('num').value.trim();
+    const raw=localStorage.getItem(DRAFT_PREFIX+id);
+    if(!raw) return renderMats(), showAsignados();
+    try{
+      const d=JSON.parse(raw);
+      if(d.fecha) $('fecha').value=d.fecha;
+      if(d.prioridad) $('prioridad').value=d.prioridad;
+      $('iniHora').value=d.iniHora||'';
+      $('finHora').value=d.finHora||'';
+      $('desc').value=d.desc||'';
+      if(d.encargado) $('encargado').value=d.encargado;
+      if(d.supervisor) $('supervisor').value=d.supervisor;
+      if(Array.isArray(d.materiales)){ ls(MATS_KEY,d.materiales); }
+      if(Array.isArray(d.asignados)){
+        const cat=getCat().map(p=>({...p, picked:d.asignados.includes(p.num)}));
+        setCat(cat);
+      }
+    }catch(_){}
+    renderMats(); showAsignados();
+  }
+
+  /* ===== Payload para supervisor (hash) ===== */
   function buildPayload(){
     const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
     return {
@@ -171,12 +221,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=>(m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v:'v1t'
+      v:'v1u'
     };
   }
 
-  // compartir (usa HASH #d=...)
   function shareLink(){
+    saveDraft();
     const p=buildPayload();
     if(!p.id) return alert('Falta el Nº OSI.');
     if(!p.supervisor.num) return alert('Selecciona un Supervisor.');
@@ -187,8 +237,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
   }
-
   async function copyLink(){
+    saveDraft();
     const p=buildPayload();
     if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
     const d=b64u.enc(JSON.stringify(p));
@@ -197,15 +247,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
   }
 
-  // reportes importados
+  /* ===== Reportes importados ===== */
   function getReports(){ return ls(REPORTS_KEY)||{} }
   function setReports(m){ ls(REPORTS_KEY,m) }
+
+  function openReportView(print=false){
+    const id=($('num')?.value||'').trim(); const rep=getReports()[id]; if(!rep) return alert('No hay reporte cargado.');
+    const win=window.open('','_blank');
+    const imgs=(rep.photos||[]).map(src=>`<img src="${src}" style="max-width:260px;max-height:260px;margin:6px;border:1px solid #ddd;border-radius:8px">`).join('');
+    win.document.write(`<title>Reporte ${rep.osiId}</title><body style="font-family:system-ui,Segoe UI,Roboto,Arial">
+      <h2>Reporte del supervisor — ${rep.osiId}</h2>
+      <p><b>Fecha:</b> ${rep.fecha} &nbsp; <b>Supervisor:</b> ${rep.supervisor?.nombre||rep.supervisor?.num||''}</p>
+      <h3>Resumen (original)</h3><pre style="white-space:pre-wrap">${rep.summary||''}</pre>
+      <h3>Reporte de lo realizado</h3><pre style="white-space:pre-wrap">${rep.done||''}</pre>
+      <h3>Situaciones / Incidencias</h3><pre style="white-space:pre-wrap">${rep.issues||''}</pre>
+      <h3>Fotos</h3><div>${imgs||'<i>Sin fotos</i>'}</div>
+      <script>window.onload=function(){ ${print?'setTimeout(()=>window.print(),300);':''} }<\/script>
+      </body>`); 
+    win.document.close();
+  }
+
   function refreshReportStatus(){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id];
-    const st=$('reportStatus'), vr=$('viewReport'), cr=$('clearReport');
-    if(rep){ st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`; vr.style.display='inline-block'; cr.style.display='inline-block'; }
-    else { st.textContent='Sin reporte importado aún.'; vr.style.display='none'; cr.style.display='none'; }
+    const st=$('reportStatus'), vr=$('viewReport'), cr=$('clearReport'), pr=$('printReport');
+    if(rep){ st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`; 
+      vr.style.display=cr.style.display=pr.style.display='inline-block';
+    } else { st.textContent='Sin reporte importado aún.'; 
+      vr.style.display=cr.style.display=pr.style.display='none';
+    }
   }
+
   $('importReport').addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     try{
@@ -218,34 +289,35 @@ document.addEventListener('DOMContentLoaded',()=>{
     const id=($('num')?.value||'').trim(); if(!id) return;
     if(confirm('¿Eliminar el reporte importado para '+id+'?')){ const map=getReports(); delete map[id]; setReports(map); refreshReportStatus(); }
   };
-  $('viewReport').onclick=()=>{
-    const id=($('num')?.value||'').trim(); const rep=getReports()[id]; if(!rep) return alert('No hay reporte cargado.');
-    const win=window.open('','_blank');
-    const imgs=(rep.photos||[]).map(src=>`<img src="${src}" style="max-width:260px;max-height:260px;margin:6px;border:1px solid #ddd;border-radius:8px">`).join('');
-    win.document.write(`<title>Reporte ${rep.osiId}</title><body style="font-family:system-ui,Segoe UI,Roboto,Arial">
-      <h2>Reporte del supervisor — ${rep.osiId}</h2>
-      <p><b>Fecha:</b> ${rep.fecha} &nbsp; <b>Supervisor:</b> ${rep.supervisor?.nombre||rep.supervisor?.num||''}</p>
-      <h3>Resumen (original)</h3><pre style="white-space:pre-wrap">${rep.summary||''}</pre>
-      <h3>Reporte de lo realizado</h3><pre style="white-space:pre-wrap">${rep.done||''}</pre>
-      <h3>Situaciones / Incidencias</h3><pre style="white-space:pre-wrap">${rep.issues||''}</pre>
-      <h3>Fotos</h3><div>${imgs||'<i>Sin fotos</i>'}</div></body>`); win.document.close();
-  };
+  $('viewReport').onclick=()=>openReportView(false);
+  $('printReport').onclick=()=>openReportView(true);
 
-  // Nueva OSI
+  /* ===== Nueva OSI ===== */
   function newOSI(){
-    setSeq(currentSeq()+1); showNum();
+    setSeq(currentSeq()+1); const id='OSI-'+pad(currentSeq(),5); showNum(id); setCurrentId(id);
     setMats([{item:'',cant:''}]); renderMats();
     const cat=getCat().map(p=>({...p, picked:false})); setCat(cat); showAsignados();
     $('iniHora').value=''; $('finHora').value=''; $('desc').value=''; $('prioridad').value='Baja'; setToday();
     $('reportStatus').textContent='Sin reporte importado aún.';
+    localStorage.removeItem(DRAFT_PREFIX+id); saveDraft();
   }
 
-  // eventos
+  /* ===== Eventos ===== */
   $('navShare').onclick=shareLink; $('navCopy').onclick=copyLink;
   $('navPrint').onclick=()=>window.print();
-  $('navConfig').onclick=()=>{ location.href='login.html#cambiar'; }; // acceso rápido a cambiar PIN
+  $('navConfig').onclick=()=>{ location.href='settings.html'; };
   $('newOsiBtn').onclick=newOSI;
 
-  // init
-  refreshEncSup(); renderMats(); showAsignados(); refreshReportStatus();
+  ['prioridad','iniHora','finHora','desc','encargado','supervisor'].forEach(id=>{
+    $(id).addEventListener('change',saveDraft);
+    if(id==='desc') $(id).addEventListener('input',saveDraft);
+  });
+
+  /* ===== Init ===== */
+  ensureRoles();
+  restoreDraft();      // restaura todo lo último de esta OSI
+  renderMats();        // por si no había draft
+  showAsignados();
+  refreshEncSup();     // repopula selects por si roles cambiaron
+  refreshReportStatus();
 });

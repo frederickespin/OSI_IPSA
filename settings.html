@@ -1,33 +1,68 @@
-<!DOCTYPE html><html lang="es"><head>
+<!DOCTYPE html>
+<html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuración — Roles</title>
+<title>Configuración — Roles y PIN</title>
+<meta name="theme-color" content="#0d6efd">
 <style>
-:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --fs:clamp(13px,3.6vw,15px); }
+:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --card:#fff }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
-.container{max-width:960px;margin:18px auto;padding:0 12px 32px}
-.card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:14px}
-.tbl-wrap{overflow:auto;border:1px solid var(--border);border-radius:14px;background:#fff}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.container{max-width:920px;margin:18px auto;padding:0 12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:14px}
+h1{margin:0 0 8px;font-size:clamp(20px,5vw,24px)}
+h2{margin:2px 0 10px;font-size:clamp(18px,5vw,20px)}
 table{width:100%;border-collapse:collapse}
-th,td{border-bottom:1px solid #eef0f3;padding:8px;text-align:left}
+th,td{border-bottom:1px solid #eef0f3;padding:10px;text-align:left}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
 .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
-.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
-input{width:100%;padding:10px;border:1px solid var(--border);border-radius:12px}
-.sub{color:#667085;font-size:12px}
+.btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
+input{padding:10px;border:1px solid var(--border);border-radius:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.small{font-size:12px;color:#475467}
+.top{display:flex;align-items:center;gap:10px}
+.logo{height:52px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
 </style>
+<script>
+(function(){ const pin = localStorage.getItem('enc-pin'); const sess= sessionStorage.getItem('enc-session'); if(!pin || !sess){ location.replace('login.html'); }})();
+</script>
 </head><body>
   <div class="container">
+    <div class="top">
+      <img class="logo" src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';">
+      <h1>Configuración</h1>
+    </div>
+
     <div class="card">
       <h2>Roles del sistema</h2>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center">
-        <input id="roleNew" placeholder="Nuevo rol (ej. Mantenimiento)">
-        <button id="roleAdd" class="btn btn-primary">Añadir</button>
+      <div class="row" style="margin-bottom:10px">
+        <input id="newRole" placeholder="Nuevo rol (ej. Mantenimiento)">
+        <button id="btnAddRole" class="btn btn-primary">Añadir</button>
+        <span class="small">“Encargado” y “Supervisor” son fijos.</span>
       </div>
-      <div class="tbl-wrap" style="margin-top:10px">
-        <table><thead><tr><th>Rol</th><th style="width:180px">Acciones</th></tr></thead><tbody id="tbRoles"></tbody></table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Rol</th><th>Acciones</th></tr></thead>
+          <tbody id="tbRoles"></tbody>
+        </table>
       </div>
-      <div style="margin-top:10px"><a href="index.html?v=v1p">← Volver al formulario</a></div>
+    </div>
+
+    <div class="card">
+      <h2>Cambiar PIN del Encargado</h2>
+      <div class="row">
+        <input id="oldPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN actual">
+        <input id="newPin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Nuevo PIN (4–6 dígitos)">
+        <input id="newPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repetir nuevo PIN">
+        <button id="btnChange" class="btn btn-primary">Guardar</button>
+      </div>
+      <div class="small" style="margin-top:6px">Si olvidas el PIN, borra “Datos del sitio” en el navegador para reiniciar el acceso.</div>
+    </div>
+
+    <div class="row">
+      <a href="index.html" class="btn">⬅ Volver al formulario</a>
+      <button id="logout" class="btn">Cerrar sesión</button>
     </div>
   </div>
-  <script src="settings.js?v=v1p"></script>
+
+  <script src="settings.js?v=v1u"></script>
 </body></html>
