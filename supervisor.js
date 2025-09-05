@@ -1,19 +1,22 @@
 (function(){
   const $=id=>document.getElementById(id);
+  const params=new URLSearchParams(location.search);
 
   // base64url decode
   function b64uDec(s){ return decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))); }
 
-  // parse payload
-  const params=new URLSearchParams(location.search);
+  // payload desde ?d=...
   let payload=null;
   try{
     const d=params.get('d');
     if(d){ payload = JSON.parse(b64uDec(d)); }
   }catch(_){}
-  if(!payload){ document.body.innerHTML='<div style="padding:24px;font-family:system-ui">No se recibieron datos de la OSI. Solicita de nuevo el enlace al encargado.</div>'; return; }
+  if(!payload){
+    document.body.innerHTML='<div style="padding:24px;font-family:system-ui">No se recibieron datos de la OSI. Solicita de nuevo el enlace al encargado.</div>';
+    return;
+  }
 
-  // pintar resumen
+  // resumen legible
   function summarize(p){
     const perso = (p.asignados||[]).map(x=>`${x.num} — ${x.nombre} — ${((x.roles||[])[0]||'')}`).join('\n');
     const mats = (p.materiales||[]).map(m=>`• ${m.item} — ${m.cant||''}`).join('\n');
@@ -38,8 +41,8 @@ ${mats||'—'}`
   const summaryText = summarize(payload);
   $('summary').textContent = summaryText;
 
-  // fotos (compresión)
-  const photos=[]; // dataURLs
+  // compresión de fotos
+  const photos=[];
   function fileToDataURL(file, maxW=1280, cb){
     const reader=new FileReader();
     reader.onload=()=>{
@@ -69,7 +72,7 @@ ${mats||'—'}`
     });
   });
 
-  // exportar json
+  // exportar y compartir
   function buildReport(){
     return {
       osiId: payload.id,
@@ -93,10 +96,9 @@ ${mats||'—'}`
   $('exportJson').onclick=()=>{
     const rep=buildReport();
     downloadJSON(rep, (rep.osiId||'OSI')+'_reporte_supervisor.json');
-    $('hint').textContent='Archivo descargado. Envíalo al encargado (WhatsApp, correo, etc.).';
+    $('hint').textContent='Archivo descargado. Envíalo al encargado.';
   };
 
-  // compartir (si el navegador soporta Web Share API con archivos)
   $('shareReport').onclick=async ()=>{
     const rep=buildReport();
     const blob = new Blob([JSON.stringify(rep,null,2)], {type:'application/json'});
@@ -112,10 +114,8 @@ ${mats||'—'}`
     }
   };
 
-  // WhatsApp (solo texto)
   $('waText').onclick=()=>{
     const txt = `Supervisor — OSI ${payload.id}\n\nResumen:\n${summaryText}\n\nReporte:\n${$('done').value||''}\n\nIncidencias:\n${$('issues').value||''}`;
-    const wa = `https://wa.me/?text=${encodeURIComponent(txt)}`;
-    window.open(wa,'_blank');
+    window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
   };
 })();

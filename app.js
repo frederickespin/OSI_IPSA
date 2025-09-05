@@ -162,15 +162,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     return payload;
   }
   function shareLink(){
-    const p = buildPayload();
-    if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y selecciona un Supervisor.'); return; }
-    const json = JSON.stringify(p);
-    const d = b64u.enc(json);
-    const link = `${location.origin}${location.pathname.replace(/index\\.html?$/,'')}supervisor.html?d=${d}`;
-    const text = `OSI ${p.id} — Instrucciones para hoy (${p.fecha})\\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\\nAbrir: ${link}`;
-    const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    window.open(wa,'_blank');
-  }
+  const p = buildPayload();
+  if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y selecciona un Supervisor.'); return; }
+  const json = JSON.stringify(p);
+  const d = b64u.enc(json);
+  // base robusta (directorio actual)
+  const base = new URL('.', location.href);           // p.ej. .../OSI_IPSA/
+  const link = new URL('supervisor.html?d='+d, base); // .../OSI_IPSA/supervisor.html?d=...
+  const text = `OSI ${p.id} — Instrucciones para hoy (${p.fecha})
+Supervisor: ${p.supervisor.nombre||p.supervisor.num}
+Abrir: ${link.href}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(text), '_blank');
+}
+
 
   $('shareSupervisor').onclick=shareLink;
   $('navShare').onclick=shareLink;
