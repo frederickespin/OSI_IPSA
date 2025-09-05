@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — Asignación + Evidencia (Supervisor) v1k</title>
+<title>OSI — Encargado (compartir a Supervisor)</title>
 <meta name="theme-color" content="#0d6efd">
 <style>
 :root{
@@ -29,8 +29,6 @@ th,td{border-bottom:1px solid #eef0f3;padding:8px;vertical-align:middle}
 th{position:sticky;top:0;background:#fff;z-index:1;text-align:left}
 .tbl-input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;min-height:36px;font-size:var(--fs)}
 input[type="checkbox"].sm{width:var(--cb);height:var(--cb);min-width:var(--cb);min-height:var(--cb);accent-color:var(--primary)}
-select.msel{min-height:130px;padding:6px;border-radius:12px}
-select.msel option{padding:6px 8px;line-height:1.2}
 .counter{color:#344054;background:#eff1f5;border:1px solid #e3e6ec;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff;font-size:var(--fs-sm)}
 .badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
@@ -48,12 +46,6 @@ select.msel option{padding:6px 8px;line-height:1.2}
 .modal .foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
 .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
 .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
-/* tasks */
-.task-card{border:1px dashed #d9dbe1;border-radius:14px;padding:10px;margin:8px 0;background:#fafbff}
-.task-card .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.task-card .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
-.task-card .thumb{max-width:140px;max-height:140px;border:1px solid var(--border);border-radius:10px;display:block}
-.photo-ctrls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 @media (min-width:720px){
   .header{grid-template-columns:auto 1fr}.header img{height:68px}
   .grid4{grid-template-columns:repeat(4,1fr)}
@@ -68,7 +60,7 @@ select.msel option{padding:6px 8px;line-height:1.2}
           <img src="logo.png" alt="Logo International Packers">
           <div>
             <h1>ORDEN DE SERVICIO INTERNA</h1>
-            <div class="sub">Gestión de personal • Build v1k</div>
+            <div class="sub">Encargado • comparte al Supervisor</div>
           </div>
         </div>
       </div>
@@ -84,34 +76,47 @@ select.msel option{padding:6px 8px;line-height:1.2}
       <select id="prioridad"><option>Baja</option><option>Media</option><option>Alta</option><option>Urgente</option></select>
 
       <div class="grid4" style="grid-template-columns:1fr 1fr">
-        <div class="field"><label>Inicio programado</label><input id="iniProg" type="datetime-local"></div>
-        <div class="field"><label>Fin programado</label><input id="finProg" type="datetime-local"></div>
+        <div class="field"><label>Hora inicio (hoy)</label><input id="iniHora" type="time"></div>
+        <div class="field"><label>Hora fin (hoy)</label><input id="finHora" type="time"></div>
       </div>
 
-      <div class="section-title">Descripción / Instrucciones</div>
-      <textarea id="desc" placeholder="Describe claramente la tarea a realizar, restricciones, riesgos y cualquier instrucción específica."></textarea>
+      <div class="section-title">Descripción / Instrucciones (para el Supervisor)</div>
+      <textarea id="desc" placeholder="Describe la tarea a realizar hoy, restricciones, riesgos y cualquier instrucción específica."></textarea>
 
       <div class="section-title">Materiales / Herramientas</div>
-      <div class="tbl-wrap"><table><thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead><tbody id="tbMat"></tbody></table></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead>
+          <tbody id="tbMat"></tbody>
+        </table>
+      </div>
       <div style="margin-top:8px"><button id="matAdd" class="icon-btn" title="Agregar ítem">＋</button></div>
 
-      <div class="section-title">Personal asignado (Operarios)</div>
+      <div class="section-title">Personal asignado (selección en “+”)</div>
       <div id="asignadosResumen" class="counter"></div>
       <ul id="asignadosLista" style="padding-left:18px"></ul>
 
-      <div class="section-title">Asignación de tareas por persona</div>
-      <div id="tareasWrap"></div>
+      <div class="section-title">Intercambio con Supervisor</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button id="shareSupervisor" class="btn btn-primary">Generar enlace para Supervisor (WhatsApp)</button>
+        <label class="btn">Importar reporte (.json)<input id="importReport" type="file" accept="application/json" style="display:none"></label>
+        <button id="viewReport" class="btn" style="display:none">Ver reporte importado</button>
+        <button id="clearReport" class="btn" style="display:none">Eliminar reporte</button>
+      </div>
+      <div id="reportStatus" class="sub" style="margin-top:8px;color:#475467"></div>
     </div>
   </div>
 
-  <div class="bottom-nav"><div class="row">
-    <button class="icon-btn plus" id="navGestion" title="Registrar/Editar/Seleccionar personal">+</button>
-    <button class="icon-btn" id="navShare" title="Compartir">🔗</button>
-    <button class="icon-btn" id="navPrint" title="Imprimir">🖨️</button>
-    <button class="icon-btn" id="navConfig" title="Configuración">⚙️</button>
-  </div></div>
+  <div class="bottom-nav">
+    <div class="row">
+      <button class="icon-btn plus" id="navGestion" title="Registrar/Editar/Seleccionar personal">+</button>
+      <button class="icon-btn" id="navShare" title="Compartir enlace a Supervisor">🔗</button>
+      <button class="icon-btn" id="navPrint" title="Imprimir">🖨️</button>
+      <button class="icon-btn" id="navConfig" title="Configuración de roles">⚙️</button>
+    </div>
+  </div>
 
-  <!-- Modal Gestión de personal (también selección) -->
+  <!-- Modal Gestión de personal -->
   <div id="modalGestion" class="overlay">
     <div class="modal">
       <div class="head">Registrar / Editar personal (marque para asignar)</div>
@@ -122,11 +127,11 @@ select.msel option{padding:6px 8px;line-height:1.2}
         </div>
         <div class="field" style="margin-top:8px">
           <label>Roles del empleado (multi-select)</label>
-          <select id="empRolesSel" class="msel" multiple size="6"></select>
+          <select id="empRolesSel" multiple size="6" class="tbl-input" style="min-height:130px"></select>
         </div>
         <div style="margin-top:8px"><button id="empAgregar" class="btn btn-primary">Agregar</button></div>
 
-        <input id="busca" class="tbl-input" placeholder="Buscar en personal (nombre, número o rol)" style="margin:8px 0">
+        <input id="busca" class="tbl-input" placeholder="Buscar (nombre, número o rol)" style="margin:8px 0">
         <div class="tbl-wrap">
           <table>
             <thead><tr><th style="width:42px">Asignar</th><th>Número</th><th>Nombre</th><th>Roles</th><th>Activo</th></tr></thead>
@@ -138,5 +143,5 @@ select.msel option{padding:6px 8px;line-height:1.2}
     </div>
   </div>
 
-  <script src="app.js?v=v1k"></script>
+  <script src="app.js?v=v1m"></script>
 </body></html>

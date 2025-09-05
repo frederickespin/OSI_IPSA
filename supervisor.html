@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OSI — Supervisor (reporte y evidencia)</title>
+<meta name="theme-color" content="#0d6efd">
+<style>
+:root{
+  --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd;
+  --card:#fff; --fs:clamp(13px,3.6vw,15px);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
+.container{max-width:900px;margin:18px auto;padding:0 12px 80px}
+.card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.header img{height:52px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
+h1{margin:0;font-size:clamp(18px,5vw,22px)}
+.sub{color:#667085;font-size:12px}
+.field label{display:block;font-size:12px;color:#344054;margin-bottom:6px;font-weight:700}
+input,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:#fff;font-size:var(--fs)}
+textarea{min-height:120px;resize:vertical}
+.badge{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
+.badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+.thumb{max-width:140px;max-height:140px;border:1px solid var(--border);border-radius:10px;display:block;margin:6px 6px 0 0}
+.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:720px){ .grid2{grid-template-columns:1fr} }
+</style>
+</head><body>
+  <div class="container">
+    <div class="card">
+      <div class="header">
+        <img src="logo.png" alt="Logo" />
+        <div>
+          <h1>Reporte del Supervisor</h1>
+          <div class="sub">Recibe instrucciones, reporta ejecución y adjunta evidencia</div>
+        </div>
+      </div>
+
+      <div id="summary" class="sub" style="white-space:pre-wrap"></div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Reporte de lo realizado</label>
+        <textarea id="done" placeholder="Describe lo que se realizó, tiempos, y validaciones efectuadas."></textarea>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Situaciones / Incidencias con operarios</label>
+        <textarea id="issues" placeholder="Cualquier novedad, retraso, riesgo, accidente, ausencia, etc."></textarea>
+      </div>
+
+      <div class="field" style="margin-top:10px">
+        <label>Fotos de comprobación (puedes tomar varias)</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap" id="photosWrap"></div>
+        <div style="margin-top:8px">
+          <input id="photoInput" type="file" accept="image/*" capture="environment" multiple>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px">
+        <button id="exportJson" class="btn btn-primary">Exportar reporte (.json)</button>
+        <button id="shareReport" class="btn">Compartir reporte</button>
+        <button id="waText" class="btn">Enviar resumen por WhatsApp</button>
+      </div>
+
+      <div class="sub" id="hint" style="margin-top:10px;color:#475467"></div>
+    </div>
+  </div>
+
+  <script src="supervisor.js?v=v1m"></script>
+</body></html>
