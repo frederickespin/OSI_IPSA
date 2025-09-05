@@ -1,4 +1,13 @@
 document.addEventListener('DOMContentLoaded',()=>{
+
+  /* ============================
+     CONFIGURACIÓN DEL ENDPOINT
+     (rellena estos 2 valores)
+     ============================ */
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- Pega aquí tu URL /exec
+  const OSI_TOKEN  = 'AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA';          // <-- Igual al TOKEN del GAS
+
+  /* ===== Claves de storage ===== */
   const ROLES_KEY='osi-roles-master-v1';
   const CAT_KEY='osi-personal-v1';
   const CORE_ROLES=['Encargado','Supervisor'];
@@ -9,21 +18,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   const DRAFT_PREFIX='osi-draft-';
   const HIST_KEY='osi-hist-v1';
 
+  /* ===== Helpers ===== */
   const $=id=>document.getElementById(id);
   const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-  /* ===== Sesión: 1 min inactivo ===== */
+  /* ===== Sesión: 1 min de inactividad ===== */
   let idleTimer=null;
   function resetIdle(){
     if(idleTimer) clearTimeout(idleTimer);
-    idleTimer=setTimeout(()=>{ try{sessionStorage.removeItem('enc-session');}catch(_){}
-      alert('Sesión cerrada por inactividad.'); location.replace('login.html'); }, 60*1000);
+    idleTimer=setTimeout(()=>{
+      try{sessionStorage.removeItem('enc-session');}catch(_){}
+      alert('Sesión cerrada por inactividad.');
+      location.replace('login.html');
+    }, 60*1000);
   }
   ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
   resetIdle();
   $('logoutBtn')?.addEventListener('click',()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); });
 
-  /* ===== Utils ===== */
+  /* ===== Utilidades ===== */
   const b64u={ enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
   const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
   const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
@@ -52,9 +65,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  /* ===== Personal ===== */
+  /* ===== Catálogo de personal ===== */
   function getCat(){ return ls(CAT_KEY)||[] }
   function setCat(a){ ls(CAT_KEY,a); }
+
   if(!ls(CAT_KEY)){
     setCat([
       {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
@@ -68,6 +82,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       {num:'F-01',  nombre:'Freder Encargado', roles:['Encargado'], activo:true}
     ]);
   }
+
   function byRole(role){ return getCat().filter(p=>p.activo!==false && (p.roles||[]).includes(role)); }
   function fillSelectByRole(id, role){
     const sel=$(id); if(!sel) return;
@@ -90,7 +105,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       tb.appendChild(tr);
     });
   }
-  $('matAdd').onclick=()=>{ const a=mats(); a.push({item:'',cant:''}); setMats(a); renderMats(); saveDraft(); };
+  $('matAdd')?.addEventListener('click',()=>{ const a=mats(); a.push({item:'',cant:''}); setMats(a); renderMats(); saveDraft(); });
   document.addEventListener('input',(e)=>{
     if(e.target.hasAttribute('data-m')){
       const i=+e.target.getAttribute('data-m'); const k=e.target.getAttribute('data-k');
@@ -98,12 +113,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  /* ===== Modal gestión personal ===== */
+  /* ===== Modal gestión de personal ===== */
   const modalGest=$('modalGestion'), empRolesSel=$('empRolesSel'), tb=$('tbPersonal');
+
   function fillRolesMulti(selEl, selected){
     const roles=getRoles(); const set=new Set(selected||[]);
     selEl.innerHTML=roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
   }
+
   function renderTabla(filter=''){
     const cat=getCat(); const q=(filter||'').toLowerCase(); tb.innerHTML='';
     cat.forEach((p,i)=>{
@@ -120,10 +137,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       tb.appendChild(tr);
     });
   }
-  $('navGestion').onclick=()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); };
-  $('gCerrar').onclick=()=>{ modalGest.style.display='none'; };
-  $('gAplicar').onclick=()=>{ modalGest.style.display='none'; showAsignados(); saveDraft(); };
-  $('empAgregar').onclick=()=>{
+
+  $('navGestion')?.addEventListener('click',()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); });
+  $('gCerrar')?.addEventListener('click',()=>{ modalGest.style.display='none'; });
+  $('gAplicar')?.addEventListener('click',()=>{ modalGest.style.display='none'; showAsignados(); saveDraft(); });
+
+  $('empAgregar')?.addEventListener('click',()=>{
     const num=$('empNum').value.trim(), nombre=$('empNombre').value.trim();
     const roles=[...empRolesSel.selectedOptions].map(o=>o.value);
     if(!num||!nombre||roles.length===0) return alert('Número, Nombre y al menos un Cargo son obligatorios');
@@ -131,8 +150,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     cat.push({num,nombre,roles,activo:true}); setCat(cat);
     $('empNum').value=''; $('empNombre').value=''; [...empRolesSel.options].forEach(o=>o.selected=false);
     renderTabla(); refreshEncSup();
-  };
-  $('busca').addEventListener('input',e=>renderTabla(e.target.value||''));
+  });
+  $('busca')?.addEventListener('input',e=>renderTabla(e.target.value||''));
   document.addEventListener('change',(e)=>{
     const i=e.target.getAttribute('data-i'); if(i===null) return;
     const cat=getCat(); const idx=parseInt(i,10); if(!cat[idx]) return;
@@ -148,6 +167,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function showAsignados(){
     const sel=getCat().filter(p=>p.picked);
     const ul=$('asignadosLista'), rs=$('asignadosResumen');
+    if(!ul||!rs) return;
     ul.innerHTML = sel.map(p=>{
       const rol=(p.roles&&p.roles[0])?p.roles[0]:'—';
       return `<li>${p.num} — ${p.nombre} — <span class="badge badge-role">${rol}</span></li>`;
@@ -164,16 +184,16 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   /* ===== Autosave por OSI ===== */
   function saveDraft(){
-    const id=$('num').value.trim(); if(!id) return;
+    const id=$('num')?.value?.trim(); if(!id) return;
     const draft={
       id,
-      fecha:$('fecha').value,
-      prioridad:$('prioridad').value,
-      iniHora:$('iniHora').value,
-      finHora:$('finHora').value,
-      desc:$('desc').value,
-      encargado:$('encargado').value,
-      supervisor:$('supervisor').value,
+      fecha:$('fecha')?.value,
+      prioridad:$('prioridad')?.value,
+      iniHora:$('iniHora')?.value,
+      finHora:$('finHora')?.value,
+      desc:$('desc')?.value,
+      encargado:$('encargado')?.value,
+      supervisor:$('supervisor')?.value,
       materiales:mats(),
       asignados:getCat().filter(p=>p.picked).map(p=>p.num),
       ts:Date.now()
@@ -192,10 +212,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   function restoreDraft(){
     const cid=getCurrentId();
     if(cid){ showNum(cid); } else { showNum(); }
-    refreshEncSup(); // llenar selects
+    refreshEncSup();
 
-    const id=$('num').value.trim();
-    const raw=localStorage.getItem(DRAFT_PREFIX+id);
+    const id=$('num')?.value?.trim();
+    const raw=id && localStorage.getItem(DRAFT_PREFIX+id);
     if(raw){
       try{
         const d=JSON.parse(raw);
@@ -216,7 +236,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     renderMats(); showAsignados();
   }
 
-  /* ===== Payload supervisor (hash) ===== */
+  /* ===== Enlace para supervisor ===== */
   function buildPayload(){
     const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
     return {
@@ -230,10 +250,9 @@ document.addEventListener('DOMContentLoaded',()=>{
       supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
       materiales: mats().filter(m=>(m.item||'').trim()),
       asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v:'v1w'
+      v:'gas1'
     };
   }
-
   function shareLink(){
     saveDraft();
     const p=buildPayload();
@@ -245,7 +264,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
-    // marcar como enviada
     histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
   }
   async function copyLink(){
@@ -259,9 +277,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
   }
 
-  /* ===== Reportes importados ===== */
+  /* ===== Reportes importados (local) ===== */
   function getReports(){ return ls(REPORTS_KEY)||{} }
   function setReports(m){ ls(REPORTS_KEY,m) }
+
   function openReportView(print=false){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id]; if(!rep) return alert('No hay reporte cargado.');
     const imgs=(rep.photos||[]).map(src=>`<img src="${src}" style="max-width:260px;max-height:260px;margin:6px;border:1px solid #ddd;border-radius:8px">`).join('');
@@ -279,14 +298,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   function refreshReportStatus(){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id];
     const st=$('reportStatus'), vr=$('viewReport'), cr=$('clearReport'), pr=$('printReport');
-    if(rep){ st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`;
+    if(!st||!vr||!cr||!pr) return;
+    if(rep){
+      st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`;
       vr.style.display=cr.style.display=pr.style.display='inline-block';
-      // actualizar historial
       const d=JSON.parse(localStorage.getItem(DRAFT_PREFIX+id)||'{}');
       histUpsert({ id, fecha:d.fecha||today(), prioridad:d.prioridad||'Media', encargado:d.encargado||'', supervisor:d.supervisor||'', personal:(d.asignados||[]).length||0, estado:'Con reporte' });
-    } else { st.textContent='Sin reporte importado aún.'; vr.style.display=cr.style.display=pr.style.display='none'; }
+    } else {
+      st.textContent='Sin reporte importado aún.';
+      vr.style.display=cr.style.display=pr.style.display='none';
+    }
   }
-  $('importReport').addEventListener('change', async e=>{
+  $('importReport')?.addEventListener('change', async e=>{
     const f=e.target.files?.[0]; if(!f) return;
     try{
       const rep=JSON.parse(await f.text());
@@ -294,12 +317,34 @@ document.addEventListener('DOMContentLoaded',()=>{
       const map=getReports(); map[rep.osiId]=rep; setReports(map); refreshReportStatus(); alert('Reporte importado correctamente.'); e.target.value='';
     }catch(err){ alert('Error leyendo el archivo: '+err.message); }
   });
-  $('clearReport').onclick=()=>{
+  $('clearReport')?.addEventListener('click',()=>{
     const id=($('num')?.value||'').trim(); if(!id) return;
     if(confirm('¿Eliminar el reporte importado para '+id+'?')){ const map=getReports(); delete map[id]; setReports(map); refreshReportStatus(); }
-  };
-  $('viewReport').onclick=()=>openReportView(false);
-  $('printReport').onclick=()=>openReportView(true);
+  });
+  $('viewReport')?.addEventListener('click',()=>openReportView(false));
+  $('printReport')?.addEventListener('click',()=>openReportView(true));
+
+  /* ===== Sincronizar desde la nube (GAS) ===== */
+  async function pullFromCloud(){
+    const id = ($('num')?.value||'').trim();
+    if(!id){ alert('Nº OSI vacío.'); return; }
+    try{
+      const url = `${SCRIPT_URL}?osiId=${encodeURIComponent(id)}&token=${encodeURIComponent(OSI_TOKEN)}`;
+      const res = await fetch(url, { method:'GET' });
+      const j   = await res.json();
+      if(j.ok && j.found){
+        const map = getReports(); map[id] = j.report; setReports(map);
+        refreshReportStatus();
+        alert('Reporte sincronizado correctamente.');
+      }else if(j.ok && !j.found){
+        alert('Aún no hay reporte en la nube para '+id);
+      }else{
+        throw new Error(j.error || 'Error desconocido');
+      }
+    }catch(err){
+      alert('Error al sincronizar: '+err.message);
+    }
+  }
 
   /* ===== Nueva OSI ===== */
   function newOSI(){
@@ -307,19 +352,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     setMats([{item:'',cant:''}]); renderMats();
     const cat=getCat().map(p=>({...p, picked:false})); setCat(cat); showAsignados();
     $('iniHora').value=''; $('finHora').value=''; $('desc').value=''; $('prioridad').value='Baja'; setToday();
-    $('reportStatus').textContent='Sin reporte importado aún.';
+    $('reportStatus') && ( $('reportStatus').textContent='Sin reporte importado aún.' );
     localStorage.removeItem(DRAFT_PREFIX+id); saveDraft();
     histUpsert({ id, fecha:today(), prioridad:'Baja', encargado:'', supervisor:'', personal:0, estado:'Borrador' });
   }
 
   /* ===== Eventos ===== */
-  $('navShare').onclick=shareLink; $('navCopy').onclick=copyLink;
-  $('navPrint').onclick=()=>window.print();
-  $('navConfig').onclick=()=>{ location.href='settings.html'; };
-  $('newOsiBtn').onclick=newOSI;
+  $('navShare')?.addEventListener('click',shareLink);
+  $('navCopy')?.addEventListener('click',copyLink);
+  $('navPrint')?.addEventListener('click',()=>window.print());
+  $('navConfig')?.addEventListener('click',()=>{ location.href='settings.html'; });
+  $('newOsiBtn')?.addEventListener('click',newOSI);
+  $('pullCloud')?.addEventListener('click',pullFromCloud);
+
   ['prioridad','iniHora','finHora','desc','encargado','supervisor'].forEach(id=>{
-    $(id).addEventListener('change',saveDraft);
-    if(id==='desc') $(id).addEventListener('input',saveDraft);
+    const el=$(id);
+    if(!el) return;
+    el.addEventListener('change',saveDraft);
+    if(id==='desc') el.addEventListener('input',saveDraft);
   });
 
   /* ===== Init ===== */
