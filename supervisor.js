@@ -4,7 +4,7 @@
      (rellena estos 2 valores)
      ============================ */
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- Pega aquí tu URL /exec
-  const OSI_TOKEN  = 'AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA';          // <-- Igual al TOKEN del GAS
+  const OSI_TOKEN  = '09oilmh78uyt65rfvcd326eswfnbcdawq16543890lkoijyhgtrfde';          // <-- Igual al TOKEN del GAS
 
   const $=id=>document.getElementById(id);
 
