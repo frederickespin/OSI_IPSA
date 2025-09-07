@@ -1,57 +1,75 @@
-document.addEventListener('DOMContentLoaded',()=>{
+/* OSI IPSA - Encargado (build autopull2)
+   - Sesión por inactividad: 5 min
+   - Enlace supervisor con ?d= (iOS-safe)
+   - Auto-pull desde la nube cada 30s hasta recibir reporte
+   - Gestión de personal y roles
+   - Materiales: Ítem + Cantidad
+   - Importar/Ver/Imprimir/Eliminar reporte (json)
+   - Historial básico por localStorage
+*/
 
-  /* ============================
-     CONFIGURACIÓN DEL ENDPOINT
-     (rellena estos 2 valores)
-     ============================ */
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- Pega aquí tu URL /exec
-  const OSI_TOKEN  = '09oilmh78uyt65rfvcd326eswfnbcdawq16543890lkoijyhgtrfde';          // <-- Igual al TOKEN del GAS
+document.addEventListener('DOMContentLoaded', () => {
 
-  /* ===== Claves de storage ===== */
-  const ROLES_KEY='osi-roles-master-v1';
-  const CAT_KEY='osi-personal-v1';
-  const CORE_ROLES=['Encargado','Supervisor'];
-  const MATS_KEY='osi-mats-v1';
-  const REPORTS_KEY='osi-reports-v1';
-  const SEQ_KEY='osi-seq';
-  const CURR_KEY='osi-current-id';
-  const DRAFT_PREFIX='osi-draft-';
-  const HIST_KEY='osi-hist-v1';
+  /* ========= CONFIG ========= */
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- Pega tu URL /exec
+  const OSI_TOKEN  = '09oilmh78uyt65rfvcd326eswfnbcdawq16543890lkoijyhgtrfde';          // <-- Mismo TOKEN del GAS
 
-  /* ===== Helpers ===== */
-  const $=id=>document.getElementById(id);
-  const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
+  /* ========= STORAGE KEYS ========= */
+  const ROLES_KEY   = 'osi-roles-master-v1';
+  const CAT_KEY     = 'osi-personal-v1';
+  const MATS_KEY    = 'osi-mats-v1';
+  const REPORTS_KEY = 'osi-reports-v1';
+  const SEQ_KEY     = 'osi-seq';
+  const CURR_KEY    = 'osi-current-id';
+  const DRAFT_PREFIX= 'osi-draft-';
+  const HIST_KEY    = 'osi-hist-v1';
 
-  /* ===== Sesión: 1 min de inactividad ===== */
+  /* ========= HELPERS ========= */
+  const $  = id => document.getElementById(id);
+  const ls = (k,v)=> v===undefined ? JSON.parse(localStorage.getItem(k)||'null')
+                                   : (localStorage.setItem(k,JSON.stringify(v)), v);
+  const pad=(n,w)=>String(n).padStart(w,'0');
+
+  const today = () => {
+    const d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  function setToday(){
+    const t=today();
+    if ($('fecha')) { $('fecha').value=t; $('fecha').min=t; $('fecha').max=t; }
+  }
+  setToday(); setTimeout(setToday,100);
+
+  const toast = (msg) => {
+    const t=$('toast'); if(!t) return;
+    t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600);
+  };
+
+  /* ========= SESIÓN POR INACTIVIDAD (5 MIN) ========= */
+  const IDLE_MS = 5 * 60 * 1000; // 5 minutos
   let idleTimer=null;
   function resetIdle(){
     if(idleTimer) clearTimeout(idleTimer);
     idleTimer=setTimeout(()=>{
-      try{sessionStorage.removeItem('enc-session');}catch(_){}
-      alert('Sesión cerrada por inactividad.');
+      try{ sessionStorage.removeItem('enc-session'); }catch(_){}
+      alert('Sesión cerrada por inactividad (5 minutos).');
       location.replace('login.html');
-    }, 60*1000);
+    }, IDLE_MS);
   }
   ['click','keydown','mousemove','touchstart','scroll'].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
   resetIdle();
   $('logoutBtn')?.addEventListener('click',()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); });
 
-  /* ===== Utilidades ===== */
-  const b64u={ enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
-  const today=()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-  const setToday=()=>{ const t=today(); const f=$('fecha'); if(f){f.value=t; f.min=t; f.max=t;} };
-  setToday(); setTimeout(setToday,80);
-  const pad=(n,w)=>String(n).padStart(w,'0');
-  const toast=(msg)=>{ const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1500); };
+  /* ========= NUMERACIÓN / ID ACTUAL ========= */
+  const currentSeq = ()=> parseInt(localStorage.getItem(SEQ_KEY)||'3',10);
+  const setSeq     = (n)=> localStorage.setItem(SEQ_KEY, String(n));
+  const setCurrentId = (id)=> localStorage.setItem(CURR_KEY,id);
+  const getCurrentId = ()=> localStorage.getItem(CURR_KEY);
+  const showNum = (id)=> { $('num').value = id || 'OSI-'+pad(currentSeq(),5); };
 
-  /* ===== Numeración / ID actual ===== */
-  function currentSeq(){ return parseInt(localStorage.getItem(SEQ_KEY)||'3',10); }
-  function setSeq(n){ localStorage.setItem(SEQ_KEY, String(n)); }
-  function setCurrentId(id){ localStorage.setItem(CURR_KEY,id); }
-  function getCurrentId(){ return localStorage.getItem(CURR_KEY); }
-  function showNum(id){ $('num').value=id || 'OSI-'+pad(currentSeq(),5); }
+  /* ========= ROLES / PERSONAL ========= */
+  const CORE_ROLES=['Encargado','Supervisor'];
 
-  /* ===== Roles ===== */
   function ensureRoles(){
     let roles=ls(ROLES_KEY);
     if(!Array.isArray(roles)||roles.length===0){
@@ -65,21 +83,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const getRoles=()=>ensureRoles();
 
-  /* ===== Catálogo de personal ===== */
   function getCat(){ return ls(CAT_KEY)||[] }
-  function setCat(a){ ls(CAT_KEY,a); }
+  function setCat(a){ ls(CAT_KEY,a) }
 
   if(!ls(CAT_KEY)){
     setCat([
-      {num:'E-010', nombre:'Ana Encargada', roles:['Encargado'], activo:true},
-      {num:'S-020', nombre:'Samuel Supervisor', roles:['Supervisor'], activo:true},
-      {num:'C-100', nombre:'Carlos Chofer', roles:['Chofer','Operario'], activo:true},
-      {num:'E-200', nombre:'Elena Empacadora', roles:['Empacador','Operario'], activo:true},
-      {num:'M-300', nombre:'Mario Mecánico', roles:['Mecánico','Operario'], activo:true},
-      {num:'K-400', nombre:'Karla Carpintera', roles:['Carpintero','Operario'], activo:true},
-      {num:'MT-500', nombre:'Miguel Mantenimiento', roles:['Mantenimiento','Operario'], activo:true},
-      {num:'V-101', nombre:'Víctor Mantenimiento', roles:['Mantenimiento','Operario'], activo:true},
-      {num:'F-01',  nombre:'Freder Encargado', roles:['Encargado'], activo:true}
+      {num:'E-010', nombre:'Ana Encargada',     roles:['Encargado'],                activo:true},
+      {num:'S-020', nombre:'Samuel Supervisor', roles:['Supervisor'],               activo:true},
+      {num:'C-100', nombre:'Carlos Chofer',     roles:['Chofer','Operario'],        activo:true},
+      {num:'E-200', nombre:'Elena Empacadora',  roles:['Empacador','Operario'],     activo:true},
+      {num:'M-300', nombre:'Mario Mecánico',    roles:['Mecánico','Operario'],      activo:true},
+      {num:'K-400', nombre:'Karla Carpintera',  roles:['Carpintero','Operario'],    activo:true},
+      {num:'MT-500',nombre:'Miguel Mantenimiento',roles:['Mantenimiento','Operario'],activo:true},
+      {num:'V-101', nombre:'Víctor Mantenimiento',roles:['Mantenimiento','Operario'],activo:true},
+      {num:'F-01',  nombre:'Freder Encargado',  roles:['Encargado'],                activo:true}
     ]);
   }
 
@@ -91,17 +108,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function refreshEncSup(){ fillSelectByRole('encargado','Encargado'); fillSelectByRole('supervisor','Supervisor'); }
 
-  /* ===== Materiales ===== */
-  function mats(){ return ls(MATS_KEY)||[] }
-  function setMats(a){ ls(MATS_KEY,a) }
-  function ensureOneRow(){ const a=mats(); if(a.length===0){ setMats([{item:'',cant:''}]); } }
+  /* ========= MATERIALES (Ítem + Cantidad) ========= */
+  const mats = ()=> ls(MATS_KEY)||[];
+  const setMats = (a)=> ls(MATS_KEY,a);
+  const ensureOneRow = ()=> { if(mats().length===0) setMats([{item:'',cant:''}]); };
+
   function renderMats(){
     ensureOneRow();
     const tb=$('tbMat'); if(!tb) return; tb.innerHTML='';
     mats().forEach((m,i)=>{
-      const tr=document.createElement('tr'); tr.innerHTML=`
-        <td><input class="tbl-input" data-m="${i}" data-k="item" value="${m.item||''}"></td>
-        <td style="width:160px"><input class="tbl-input" data-m="${i}" data-k="cant" value="${m.cant||''}"></td>`;
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="tbl-input" data-m="${i}" data-k="item" value="${m.item||''}" placeholder="Ítem"></td>
+        <td style="width:160px"><input class="tbl-input" data-m="${i}" data-k="cant" value="${m.cant||''}" placeholder="Cantidad"></td>`;
       tb.appendChild(tr);
     });
   }
@@ -113,14 +132,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  /* ===== Modal gestión de personal ===== */
+  /* ========= MODAL: GESTIÓN / SELECCIÓN DE PERSONAL ========= */
   const modalGest=$('modalGestion'), empRolesSel=$('empRolesSel'), tb=$('tbPersonal');
 
   function fillRolesMulti(selEl, selected){
     const roles=getRoles(); const set=new Set(selected||[]);
     selEl.innerHTML=roles.map(r=>`<option value="${r}" ${set.has(r)?'selected':''}>${r}</option>`).join('');
   }
-
   function renderTabla(filter=''){
     const cat=getCat(); const q=(filter||'').toLowerCase(); tb.innerHTML='';
     cat.forEach((p,i)=>{
@@ -137,7 +155,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       tb.appendChild(tr);
     });
   }
-
   $('navGestion')?.addEventListener('click',()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); });
   $('gCerrar')?.addEventListener('click',()=>{ modalGest.style.display='none'; });
   $('gAplicar')?.addEventListener('click',()=>{ modalGest.style.display='none'; showAsignados(); saveDraft(); });
@@ -163,7 +180,6 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
 
-  /* ===== Resumen asignados ===== */
   function showAsignados(){
     const sel=getCat().filter(p=>p.picked);
     const ul=$('asignadosLista'), rs=$('asignadosResumen');
@@ -175,14 +191,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  /* ===== Historial ===== */
+  /* ========= HISTORIAL (local) ========= */
   function histAll(){ return ls(HIST_KEY)||[] }
   function histUpsert(rec){
     const all=histAll().filter(x=>x.id!==rec.id); all.push({...rec, updatedAt:Date.now()});
     ls(HIST_KEY, all.sort((a,b)=>String(a.id).localeCompare(String(b.id))));
   }
 
-  /* ===== Autosave por OSI ===== */
+  /* ========= GUARDADO POR BORRADOR ========= */
   function saveDraft(){
     const id=$('num')?.value?.trim(); if(!id) return;
     const draft={
@@ -200,10 +216,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     };
     localStorage.setItem(DRAFT_PREFIX+id, JSON.stringify(draft));
     setCurrentId(id);
-    histUpsert({
-      id,
-      fecha:draft.fecha,
-      prioridad:draft.prioridad,
+    histUpsert({ id,
+      fecha:draft.fecha, prioridad:draft.prioridad,
       encargado:draft.encargado, supervisor:draft.supervisor,
       personal:(draft.asignados||[]).length,
       estado:(getReports()[id]?'Con reporte':'Borrador')
@@ -219,7 +233,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(raw){
       try{
         const d=JSON.parse(raw);
-        if(d.fecha) $('fecha').value=d.fecha;
+        if(d.fecha) $('fecha').value=d.fecha; else setToday();
         if(d.prioridad) $('prioridad').value=d.prioridad;
         $('iniHora').value=d.iniHora||'';
         $('finHora').value=d.finHora||'';
@@ -232,11 +246,15 @@ document.addEventListener('DOMContentLoaded',()=>{
           setCat(cat);
         }
       }catch(_){}
+    }else{
+      setToday();
     }
     renderMats(); showAsignados();
   }
 
-  /* ===== Enlace para supervisor ===== */
+  /* ========= ENLACE PARA SUPERVISOR (iOS-safe) ========= */
+  const b64u = { enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
+
   function buildPayload(){
     const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
     return {
@@ -253,6 +271,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       v:'gas1'
     };
   }
+
   function shareLink(){
     saveDraft();
     const p=buildPayload();
@@ -260,27 +279,28 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!p.supervisor.num) return alert('Selecciona un Supervisor.');
     const d=b64u.enc(JSON.stringify(p));
     const base=new URL('.',location.href);
-const supURL=new URL('supervisor.html?d='+d, base).href;
+    const supURL=new URL('supervisor.html?d='+d, base).href; // iOS-safe
     const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
     histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
+    startAutoPull();
   }
   async function copyLink(){
     saveDraft();
     const p=buildPayload();
     if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
     const d=b64u.enc(JSON.stringify(p));
-const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
-
+    const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
     try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
     catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
     histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
+    startAutoPull();
   }
 
-  /* ===== Reportes importados (local) ===== */
-  function getReports(){ return ls(REPORTS_KEY)||{} }
-  function setReports(m){ ls(REPORTS_KEY,m) }
+  /* ========= REPORTES (local) ========= */
+  const getReports = ()=> ls(REPORTS_KEY)||{};
+  const setReports = (m)=> ls(REPORTS_KEY,m);
 
   function openReportView(print=false){
     const id=($('num')?.value||'').trim(); const rep=getReports()[id]; if(!rep) return alert('No hay reporte cargado.');
@@ -303,6 +323,7 @@ const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
     if(rep){
       st.textContent=`Reporte del supervisor recibido (${new Date(rep.timestamp||Date.now()).toLocaleString()}).`;
       vr.style.display=cr.style.display=pr.style.display='inline-block';
+      stopAutoPull();
       const d=JSON.parse(localStorage.getItem(DRAFT_PREFIX+id)||'{}');
       histUpsert({ id, fecha:d.fecha||today(), prioridad:d.prioridad||'Media', encargado:d.encargado||'', supervisor:d.supervisor||'', personal:(d.asignados||[]).length||0, estado:'Con reporte' });
     } else {
@@ -325,7 +346,7 @@ const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
   $('viewReport')?.addEventListener('click',()=>openReportView(false));
   $('printReport')?.addEventListener('click',()=>openReportView(true));
 
-  /* ===== Sincronizar desde la nube (GAS) ===== */
+  /* ========= SINCRONIZAR DESDE LA NUBE (GAS) ========= */
   async function pullFromCloud(){
     const id = ($('num')?.value||'').trim();
     if(!id){ alert('Nº OSI vacío.'); return; }
@@ -336,18 +357,23 @@ const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
       if(j.ok && j.found){
         const map = getReports(); map[id] = j.report; setReports(map);
         refreshReportStatus();
-        alert('Reporte sincronizado correctamente.');
+        toast('Reporte sincronizado');
       }else if(j.ok && !j.found){
-        alert('Aún no hay reporte en la nube para '+id);
+        // sin reporte aún: silencio
       }else{
         throw new Error(j.error || 'Error desconocido');
       }
     }catch(err){
-      alert('Error al sincronizar: '+err.message);
+      console.warn('pull error', err);
     }
   }
 
-  /* ===== Nueva OSI ===== */
+  /* ========= AUTO-PULL CADA 30s HASTA RECIBIR ========= */
+  let autoPullTimer=null;
+  function startAutoPull(){ stopAutoPull(); autoPullTimer=setInterval(pullFromCloud, 30*1000); }
+  function stopAutoPull(){ if(autoPullTimer){ clearInterval(autoPullTimer); autoPullTimer=null; } }
+
+  /* ========= NUEVA OSI ========= */
   function newOSI(){
     setSeq(currentSeq()+1); const id='OSI-'+pad(currentSeq(),5); showNum(id); setCurrentId(id);
     setMats([{item:'',cant:''}]); renderMats();
@@ -356,15 +382,17 @@ const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
     $('reportStatus') && ( $('reportStatus').textContent='Sin reporte importado aún.' );
     localStorage.removeItem(DRAFT_PREFIX+id); saveDraft();
     histUpsert({ id, fecha:today(), prioridad:'Baja', encargado:'', supervisor:'', personal:0, estado:'Borrador' });
+    stopAutoPull();
   }
 
-  /* ===== Eventos ===== */
+  /* ========= EVENTOS ========= */
   $('navShare')?.addEventListener('click',shareLink);
   $('navCopy')?.addEventListener('click',copyLink);
   $('navPrint')?.addEventListener('click',()=>window.print());
   $('navConfig')?.addEventListener('click',()=>{ location.href='settings.html'; });
   $('newOsiBtn')?.addEventListener('click',newOSI);
   $('pullCloud')?.addEventListener('click',pullFromCloud);
+  $('navGestion')?.addEventListener('click',()=>{ modalGest.style.display='flex'; fillRolesMulti(empRolesSel,[]); renderTabla(); });
 
   ['prioridad','iniHora','finHora','desc','encargado','supervisor'].forEach(id=>{
     const el=$(id);
@@ -373,12 +401,11 @@ const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
     if(id==='desc') el.addEventListener('input',saveDraft);
   });
 
-  /* ===== Init ===== */
+  /* ========= INIT ========= */
   ensureRoles();
+  refreshEncSup();
   restoreDraft();
   renderMats();
   showAsignados();
-  refreshEncSup();
   refreshReportStatus();
 });
-
