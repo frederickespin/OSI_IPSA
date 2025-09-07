@@ -9,23 +9,36 @@
   const $=id=>document.getElementById(id);
 
   /* ===== Decodificar payload del enlace ===== */
-  function b64uDec(s){ return decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))); }
-  function getPayloadFromURL(){
-    const qs=new URLSearchParams(location.search);
-    let d=qs.get('d');
-    if(!d && location.hash){
-      const h=location.hash.startsWith('#')? location.hash.slice(1) : location.hash;
-      const hs=new URLSearchParams(h);
-      d=hs.get('d') || h;
-    }
-    if(!d) return null;
-    try{ return JSON.parse(b64uDec(d)); }catch(_){ return null; }
+  // --- Decodificador robusto para iOS/Android ---
+// Convierte Base64-URL a texto (corrige -/_ y padding)
+function b64uToStr(s){
+  s = (s || '').replace(/-/g,'+').replace(/_/g,'/');
+  try {
+    return decodeURIComponent(escape(atob(s)));
+  } catch (e) {
+    // añade padding si falta
+    const pad = s.length % 4 ? 4 - (s.length % 4) : 0;
+    return decodeURIComponent(escape(atob(s + '='.repeat(pad))));
   }
-  const payload=getPayloadFromURL();
-  if(!payload){
-    document.body.innerHTML='<div style="padding:24px;font-family:system-ui">No se recibieron datos de la OSI. Solicita de nuevo el enlace al encargado.</div>';
-    return;
+}
+
+// Lee el payload desde ?d= (preferido en iOS) o #d=
+function getPayloadFromURL(){
+  const qs = new URLSearchParams(location.search);
+  let d = qs.get('d');
+  if (!d && location.hash){
+    const h = location.hash.charAt(0) === '#' ? location.hash.slice(1) : location.hash;
+    const hs = new URLSearchParams(h);
+    d = hs.get('d') || h; // compatibilidad con enlaces antiguos
   }
+  if (!d) return null;
+  try {
+    return JSON.parse(b64uToStr(d));
+  } catch (_){
+    return null;
+  }
+}
+
 
   /* ===== Resumen visible ===== */
   function summarize(p){

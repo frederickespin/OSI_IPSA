@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!p.supervisor.num) return alert('Selecciona un Supervisor.');
     const d=b64u.enc(JSON.stringify(p));
     const base=new URL('.',location.href);
-    const supURL=new URL('supervisor.html#d='+d, base).href;
+const supURL=new URL('supervisor.html?d='+d, base).href;
     const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
     if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
     else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
@@ -271,7 +271,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const p=buildPayload();
     if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
     const d=b64u.enc(JSON.stringify(p));
-    const supURL=new URL('supervisor.html#d='+d, new URL('.',location.href)).href;
+const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
+
     try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
     catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
     histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
