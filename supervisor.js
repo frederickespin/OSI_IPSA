@@ -1,22 +1,32 @@
 
-/* OSI IPSA - Supervisor (build autopull2)
+/* OSI IPSA - Supervisor (build ui_cam1)
+   - Título: OSI SUPERVISOR
+   - OSI visible arriba
+   - Botón cámara (abre input oculto)
+   - Botones funcionando (nube / json / WhatsApp)
    - Decodificador robusto (?d= preferido, #d= respaldo)
-   - Reporte con texto + fotos (comprimidas)
-   - Enviar a la nube (POST text/plain) o Descargar .json
+   - Inactividad 5 min (opcional)
 */
 
 (function(){
   /* ========= CONFIG ========= */
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- URL /exec
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- URL /exec
   const OSI_TOKEN  = '09oilmh78uyt65rfvcd326eswfnbcdawq16543890lkoijyhgtrfde';          // <-- Igual al TOKEN de GAS
 
   const $=id=>document.getElementById(id);
 
-  /* ========= INACTIVIDAD (opcional 5 min) ========= */
+  /* ========= INACTIVIDAD (5 min) ========= */
   const IDLE_MS = 5 * 60 * 1000;
   let idleTimer=null;
-  function resetIdle(){ if(idleTimer) clearTimeout(idleTimer); idleTimer=setTimeout(()=>{ alert('Sesión inactiva. Regresa desde el enlace del encargado.'); location.replace('index.html'); }, IDLE_MS); }
-  ['click','keydown','mousemove','touchstart','scroll'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true})); resetIdle();
+  function resetIdle(){
+    if(idleTimer) clearTimeout(idleTimer);
+    idleTimer=setTimeout(()=>{
+      alert('Sesión inactiva. Regresa desde el enlace del Encargado.');
+      location.replace('index.html');
+    }, IDLE_MS);
+  }
+  ['click','keydown','mousemove','touchstart','scroll'].forEach(e=>document.addEventListener(e,resetIdle,{passive:true}));
+  resetIdle();
 
   /* ========= Decodificador robusto ========= */
   function b64uToStr(s){
@@ -41,6 +51,10 @@
     return;
   }
 
+  // Mostrar OSI arriba
+  const osiTop = $('osiTopId');
+  if (osiTop) osiTop.textContent = payload.id || '';
+
   /* ========= Resumen visible ========= */
   function summarize(p){
     const perso=(p.asignados||[]).map(x=>`${x.num} — ${x.nombre} — ${((x.roles||[])[0]||'')}`).join('\n');
@@ -64,7 +78,7 @@ ${mats||'—'}`
     );
   }
   const summaryText=summarize(payload);
-  $('summary').textContent=summaryText;
+  $('summary') && ($('summary').textContent=summaryText);
 
   /* ========= Fotos (comprimir) ========= */
   const photos=[];
@@ -77,9 +91,19 @@ ${mats||'—'}`
     }; img.src=r.result; }; r.readAsDataURL(file);
   }
   function renderThumbs(){ const wrap=$('photosWrap'); if(!wrap) return; wrap.innerHTML=''; photos.forEach(src=>{ const i=document.createElement('img'); i.className='thumb'; i.src=src; wrap.appendChild(i); }); }
-  $('photoInput')?.addEventListener('change',e=>{
+
+  const photoInput=$('photoInput');
+  const cameraBtn=$('cameraBtn');
+  if (cameraBtn && photoInput){
+    cameraBtn.addEventListener('click', ()=>{ photoInput.click(); });
+  }
+  photoInput?.addEventListener('change',e=>{
     const files=[...(e.target.files||[])].slice(0,8-photos.length); if(files.length===0) return;
-    let left=files.length; files.forEach(f=>fileToDataURL(f,1024,(d)=>{ photos.push(d); renderThumbs(); if(--left===0) e.target.value=''; }));
+    let left=files.length;
+    files.forEach(f=>fileToDataURL(f,1024,(d)=>{
+      photos.push(d); renderThumbs();
+      if(--left===0) e.target.value='';
+    }));
   });
 
   /* ========= Reporte ========= */
@@ -115,12 +139,12 @@ ${mats||'—'}`
       });
       const j = await res.json();
       if (j.ok){
-        $('hint').textContent = '✅ Reporte enviado a la nube. El Encargado puede “Sincronizar desde la nube”.';
+        $('hint') && ($('hint').textContent = '✅ Reporte enviado a la nube. El Encargado puede “Sincronizar desde la nube”.');
         return;
       }
       throw new Error(j.error || 'Error desconocido');
     }catch(err){
-      $('hint').textContent = 'No se pudo enviar a la nube ('+err.message+'). Se descargará el archivo .json para enviarlo por WhatsApp como “Documento”.';
+      $('hint') && ($('hint').textContent = 'No se pudo enviar a la nube ('+err.message+'). Se descargará el archivo .json para enviarlo por WhatsApp como “Documento”.');
       downloadJSON(rep,(rep.osiId||'OSI')+'_reporte_supervisor.json');
     }
   });
@@ -129,7 +153,7 @@ ${mats||'—'}`
   $('exportJson')?.addEventListener('click',()=>{
     const rep=buildReport();
     downloadJSON(rep,(rep.osiId||'OSI')+'_reporte_supervisor.json');
-    $('hint').textContent='Archivo descargado. Envíalo al Encargado como “Documento”.';
+    $('hint') && ($('hint').textContent='Archivo descargado. Envíalo al Encargado como “Documento”.');
   });
   $('waText')?.addEventListener('click',()=>{
     const txt=`Supervisor — OSI ${payload.id}\n\nResumen:\n${summaryText}\n\nReporte:\n${$('done')?.value||''}\n\nIncidencias:\n${$('issues')?.value||''}\n\n(IMPORTANTE: adjunta también el archivo .json para incluir fotos)`;

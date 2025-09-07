@@ -1,62 +1,105 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OSI — Supervisor</title>
-<meta name="theme-color" content="#0d6efd">
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OSI SUPERVISOR</title>
+<meta name="theme-color" content="#0d6efd" />
 <style>
 :root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --card:#fff; --fs:clamp(13px,3.6vw,15px); }
 *{box-sizing:border-box}
-body{margin:0;background:#f6f7fb;color:#101828;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
 .container{max-width:900px;margin:18px auto;padding:0 12px 80px}
-.card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
 .header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
 .header img{height:52px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
-h1{margin:0;font-size:clamp(18px,5vw,22px)} .sub{color:#667085;font-size:12px}
+h1{margin:0;font-size:clamp(18px,5vw,22px)}
+.sub{color:var(--muted);font-size:12px}
+
+.osi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 10px}
+.osi-pill{display:inline-flex;align-items:center;gap:8px;background:#f0f6ff;border:1px solid #dbe7ff;color:#0b5ed7;border-radius:999px;padding:6px 10px;font-weight:800}
+.osi-label{font-size:12px;color:#475467}
+
 .field label{display:block;font-size:12px;color:#344054;margin-bottom:6px;font-weight:700}
-input,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:#fff;font-size:var(--fs)}
+input,textarea,button{font-size:var(--fs)}
+input,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:#fff}
 textarea{min-height:120px;resize:vertical}
+
 .badge{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
 .badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+
 .thumb{max-width:140px;max-height:140px;border:1px solid var(--border);border-radius:10px;display:block;margin:6px 6px 0 0}
 .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
 .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-@media (max-width:720px){ .grid2{grid-template-columns:1fr} }
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
+.icon-btn svg{display:block}
+.icon-btn.camera{border-color:#0d6efd;color:#0d6efd;background:#eef5ff}
+.icon-btn.camera:active{transform:scale(0.98)}
+
 .tip{background:#f0f6ff;border:1px solid #dbe7ff;color:#0b5ed7;padding:10px;border-radius:10px;font-size:12px}
+@media (max-width:720px){
+  .row{gap:10px}
+}
 </style>
-</head><body>
+</head>
+<body>
   <div class="container">
     <div class="card">
+      <!-- Encabezado -->
       <div class="header">
         <img src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';" />
         <div>
-          <h1>Reporte del Supervisor</h1>
-          <div class="sub">Completa texto y fotos, luego **Enviar reporte** para el Encargado.</div>
+          <h1>OSI SUPERVISOR</h1>
+          <div class="sub">Completa texto y fotos; usa “Enviar/Compartir reporte”.</div>
         </div>
       </div>
 
+      <!-- Nº OSI arriba -->
+      <div class="osi-top">
+        <div class="osi-pill">OSI: <span id="osiTopId">—</span></div>
+        <div class="osi-label">Resumen generado desde el enlace del Encargado</div>
+      </div>
+
+      <!-- Resumen -->
       <div id="summary" class="sub" style="white-space:pre-wrap"></div>
 
+      <!-- Texto del reporte -->
       <div class="field" style="margin-top:10px">
         <label>Reporte de lo realizado</label>
-        <textarea id="done" placeholder="Describe lo que se realizó, tiempos, validaciones…"></textarea>
+        <textarea id="done" placeholder="Describe lo realizado, tiempos, validaciones…"></textarea>
       </div>
 
       <div class="field" style="margin-top:10px">
-        <label>Situaciones / Incidencias con operarios</label>
-        <textarea id="issues" placeholder="Novedades, retrasos, riesgos, ausencias, accidentes, etc."></textarea>
+        <label>Situaciones / Incidencias</label>
+        <textarea id="issues" placeholder="Novedades, retrasos, ausencias, riesgos…"></textarea>
       </div>
 
+      <!-- Fotos -->
       <div class="field" style="margin-top:10px">
-        <label>Fotos de comprobación (puedes tomar varias)</label>
-        <div class="tip">Consejo: añade 3–6 fotos. Se comprimen para enviarse dentro del archivo.</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap" id="photosWrap"></div>
-        <div style="margin-top:8px">
-          <input id="photoInput" type="file" accept="image/*" capture="environment" multiple>
+        <label>Fotos de comprobación</label>
+        <div class="tip">Puedes tomar o elegir varias (se comprimen automáticamente).</div>
+
+        <div class="row" style="margin-top:8px">
+          <!-- Botón de Cámara -->
+          <button id="cameraBtn" class="icon-btn camera" title="Tomar/Seleccionar fotos">
+            <!-- Ícono cámara -->
+            <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M20 5h-3.6l-1.2-1.6A2 2 0 0 0 13.6 2H10.4a2 2 0 0 0-1.6.8L7.6 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-8 14a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+            </svg>
+            <span> Cámara / Galería</span>
+          </button>
+
+          <!-- Input de archivos (oculto) -->
+          <input id="photoInput" type="file" accept="image/*" capture="environment" multiple style="display:none" />
         </div>
+
+        <div id="photosWrap" class="row" style="margin-top:6px"></div>
       </div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px">
+      <!-- Acciones -->
+      <div class="row" style="margin-top:12px">
         <button id="shareReport" class="btn btn-primary">Enviar/Compartir reporte</button>
         <button id="exportJson" class="btn">Descargar (.json)</button>
         <button id="waText" class="btn">Enviar solo texto</button>
@@ -66,5 +109,7 @@ textarea{min-height:120px;resize:vertical}
     </div>
   </div>
 
-<script src="supervisor.js?v=iosfix1"></script>
-</body></html>
+  <!-- JS (bump de versión para evitar caché) -->
+  <script src="supervisor.js?v=ui_cam1"></script>
+</body>
+</html>
