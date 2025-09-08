@@ -1,25 +1,28 @@
-/* OSI IPSA - Encargado (build autopull2)
+  /* OSI IPSA - Encargado (build seqfix2)
    - Sesión por inactividad: 5 min
-   - Enlace supervisor con ?d= (iOS-safe)
-   - Auto-pull desde la nube cada 30s hasta recibir reporte
-   - Gestión de personal y roles
+   - Enlace supervisor con ?d= (iOS-safe) y “repo-safe” (GitHub Pages)
+   - Auto-pull a la nube cada 30s hasta recibir reporte
+   - Gestión de personal/roles (multi-select)
    - Materiales: Ítem + Cantidad
    - Importar/Ver/Imprimir/Eliminar reporte (json)
-   - Historial básico por localStorage
+   - Historial local
+   - Numeración: SOLO CONFIRMA al compartir/copiar el enlace
+   - "Nueva OSI": limpia Encargado y Supervisor
 */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ========= CONFIG ========= */
+  * ========= CONFIG ========= */
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwpHs5Soi5PoqhIq0io63S2xyA7a73YvbVXDVvX5lSbKEyi0D4WgZXc93GoJFcU2JwAVA/exec'; // <-- Pega tu URL /exec
   const OSI_TOKEN  = '09oilmh78uyt65rfvcd326eswfnbcdawq16543890lkoijyhgtrfde';          // <-- Mismo TOKEN del GAS
+
 
   /* ========= STORAGE KEYS ========= */
   const ROLES_KEY   = 'osi-roles-master-v1';
   const CAT_KEY     = 'osi-personal-v1';
   const MATS_KEY    = 'osi-mats-v1';
   const REPORTS_KEY = 'osi-reports-v1';
-  const SEQ_KEY     = 'osi-seq';
+  const SEQ_KEY     = 'osi-seq';            // último número CONFIRMADO
   const CURR_KEY    = 'osi-current-id';
   const DRAFT_PREFIX= 'osi-draft-';
   const HIST_KEY    = 'osi-hist-v1';
@@ -40,13 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setToday(); setTimeout(setToday,100);
 
-  const toast = (msg) => {
-    const t=$('toast'); if(!t) return;
-    t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600);
-  };
+  const toast = (msg) => { const t=$('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); };
 
   /* ========= SESIÓN POR INACTIVIDAD (5 MIN) ========= */
-  const IDLE_MS = 5 * 60 * 1000; // 5 minutos
+  const IDLE_MS = 5 * 60 * 1000;
   let idleTimer=null;
   function resetIdle(){
     if(idleTimer) clearTimeout(idleTimer);
@@ -60,16 +60,21 @@ document.addEventListener('DOMContentLoaded', () => {
   resetIdle();
   $('logoutBtn')?.addEventListener('click',()=>{ sessionStorage.removeItem('enc-session'); location.replace('login.html'); });
 
-  /* ========= NUMERACIÓN / ID ACTUAL ========= */
-  const currentSeq = ()=> parseInt(localStorage.getItem(SEQ_KEY)||'3',10);
-  const setSeq     = (n)=> localStorage.setItem(SEQ_KEY, String(n));
-  const setCurrentId = (id)=> localStorage.setItem(CURR_KEY,id);
+  /* ========= NUMERACIÓN ========= */
+  const currentSeq = ()=> parseInt(localStorage.getItem(SEQ_KEY)||'0',10);
+  const formatId   = (n)=> 'OSI-'+pad(n,5);
+  const idToNum    = (id)=>{ const m=String(id||'').trim().match(/^OSI-(\d{1,})$/); return m?parseInt(m[1],10):NaN; };
+
+  function showNum(id){ $('num').value = id || formatId(currentSeq()+1); }
+  function commitSeqFromId(id){
+    const n=idToNum(id); if(!isFinite(n)) return;
+    const cur=currentSeq(); if(n>cur){ localStorage.setItem(SEQ_KEY,String(n)); }
+  }
+  const setCurrentId = id=> localStorage.setItem(CURR_KEY,id);
   const getCurrentId = ()=> localStorage.getItem(CURR_KEY);
-  const showNum = (id)=> { $('num').value = id || 'OSI-'+pad(currentSeq(),5); };
 
   /* ========= ROLES / PERSONAL ========= */
   const CORE_ROLES=['Encargado','Supervisor'];
-
   function ensureRoles(){
     let roles=ls(ROLES_KEY);
     if(!Array.isArray(roles)||roles.length===0){
@@ -191,14 +196,14 @@ document.addEventListener('DOMContentLoaded', () => {
     rs.textContent = sel.length? (sel.length+' seleccionado(s)'):'';
   }
 
-  /* ========= HISTORIAL (local) ========= */
+  /* ========= HISTORIAL ========= */
   function histAll(){ return ls(HIST_KEY)||[] }
   function histUpsert(rec){
     const all=histAll().filter(x=>x.id!==rec.id); all.push({...rec, updatedAt:Date.now()});
     ls(HIST_KEY, all.sort((a,b)=>String(a.id).localeCompare(String(b.id))));
   }
 
-  /* ========= GUARDADO POR BORRADOR ========= */
+  /* ========= BORRADOR ========= */
   function saveDraft(){
     const id=$('num')?.value?.trim(); if(!id) return;
     const draft={
@@ -248,54 +253,33 @@ document.addEventListener('DOMContentLoaded', () => {
       }catch(_){}
     }else{
       setToday();
+      if($('encargado')) $('encargado').value='';
+      if($('supervisor')) $('supervisor').value='';
     }
     renderMats(); showAsignados();
   }
 
-  /* ========= ENLACE PARA SUPERVISOR (iOS-safe) ========= */
+  /* ========= BASE64URL ========= */
   const b64u = { enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'') };
 
-  function buildPayload(){
-    const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
-    return {
-      id: ($('num')?.value||'').trim(),
-      fecha: $('fecha')?.value||today(),
-      prioridad: $('prioridad')?.value||'Media',
-      iniHora: $('iniHora')?.value||'',
-      finHora: $('finHora')?.value||'',
-      desc: $('desc')?.value||'',
-      encargado:{ num:$('encargado')?.value||'', nombre:getNameByNum($('encargado')?.value||'') },
-      supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
-      materiales: mats().filter(m=>(m.item||'').trim()),
-      asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
-      v:'gas1'
-    };
-  }
+  /* ========= AUTO-PULL ========= */
+  let autoPullTimer=null;
+  function startAutoPull(){ stopAutoPull(); autoPullTimer=setInterval(pullFromCloud, 30*1000); }
+  function stopAutoPull(){ if(autoPullTimer){ clearInterval(autoPullTimer); autoPullTimer=null; } }
 
-  function shareLink(){
-    saveDraft();
-    const p=buildPayload();
-    if(!p.id) return alert('Falta el Nº OSI.');
-    if(!p.supervisor.num) return alert('Selecciona un Supervisor.');
-    const d=b64u.enc(JSON.stringify(p));
-    const base=new URL('.',location.href);
-    const supURL=new URL('supervisor.html?d='+d, base).href; // iOS-safe
-    const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
-    if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
-    else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
-    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
-    startAutoPull();
-  }
-  async function copyLink(){
-    saveDraft();
-    const p=buildPayload();
-    if(!p.id || !p.supervisor.num){ alert('Completa Nº OSI y Supervisor antes de copiar.'); return; }
-    const d=b64u.enc(JSON.stringify(p));
-    const supURL=new URL('supervisor.html?d='+d, new URL('.',location.href)).href;
-    try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
-    catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
-    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
-    startAutoPull();
+  async function pullFromCloud(){
+    const id = ($('num')?.value||'').trim();
+    if(!id){ alert('Nº OSI vacío.'); return; }
+    try{
+      const url = `${SCRIPT_URL}?osiId=${encodeURIComponent(id)}&token=${encodeURIComponent(OSI_TOKEN)}`;
+      const res = await fetch(url, { method:'GET' });
+      const j   = await res.json();
+      if(j.ok && j.found){
+        const map = getReports(); map[id] = j.report; setReports(map);
+        refreshReportStatus();
+        toast('Reporte sincronizado');
+      }
+    }catch(err){ console.warn('pull error', err); }
   }
 
   /* ========= REPORTES (local) ========= */
@@ -331,56 +315,87 @@ document.addEventListener('DOMContentLoaded', () => {
       vr.style.display=cr.style.display=pr.style.display='none';
     }
   }
-  $('importReport')?.addEventListener('change', async e=>{
-    const f=e.target.files?.[0]; if(!f) return;
-    try{
-      const rep=JSON.parse(await f.text());
-      if(!rep||!rep.osiId) return alert('Archivo inválido');
-      const map=getReports(); map[rep.osiId]=rep; setReports(map); refreshReportStatus(); alert('Reporte importado correctamente.'); e.target.value='';
-    }catch(err){ alert('Error leyendo el archivo: '+err.message); }
-  });
-  $('clearReport')?.addEventListener('click',()=>{
-    const id=($('num')?.value||'').trim(); if(!id) return;
-    if(confirm('¿Eliminar el reporte importado para '+id+'?')){ const map=getReports(); delete map[id]; setReports(map); refreshReportStatus(); }
-  });
-  $('viewReport')?.addEventListener('click',()=>openReportView(false));
-  $('printReport')?.addEventListener('click',()=>openReportView(true));
 
-  /* ========= SINCRONIZAR DESDE LA NUBE (GAS) ========= */
-  async function pullFromCloud(){
-    const id = ($('num')?.value||'').trim();
-    if(!id){ alert('Nº OSI vacío.'); return; }
-    try{
-      const url = `${SCRIPT_URL}?osiId=${encodeURIComponent(id)}&token=${encodeURIComponent(OSI_TOKEN)}`;
-      const res = await fetch(url, { method:'GET' });
-      const j   = await res.json();
-      if(j.ok && j.found){
-        const map = getReports(); map[id] = j.report; setReports(map);
-        refreshReportStatus();
-        toast('Reporte sincronizado');
-      }else if(j.ok && !j.found){
-        // sin reporte aún: silencio
-      }else{
-        throw new Error(j.error || 'Error desconocido');
-      }
-    }catch(err){
-      console.warn('pull error', err);
-    }
+  /* ========= BUILDER “REPO-SAFE” (GitHub Pages) ========= */
+  function repoBaseUrl(){
+    const path = window.location.pathname;
+    const basePath = path.endsWith('/') ? path : path.replace(/[^/]*$/, '');
+    return window.location.origin + basePath; // https://.../OSI_IPSA/
+  }
+  function buildSupervisorURL(dParam){ return repoBaseUrl() + 'supervisor.html?d=' + dParam; }
+
+  /* ========= COMPARTIR / COPIAR ========= */
+  function buildPayload(){
+    const getNameByNum=num=>{ const p=getCat().find(x=>x.num===num); return p? p.nombre:''; };
+    return {
+      id: ($('num')?.value||'').trim(),
+      fecha: $('fecha')?.value||today(),
+      prioridad: $('prioridad')?.value||'Media',
+      iniHora: $('iniHora')?.value||'',
+      finHora: $('finHora')?.value||'',
+      desc: $('desc')?.value||'',
+      encargado:{ num:$('encargado')?.value||'', nombre:getNameByNum($('encargado')?.value||'') },
+      supervisor:{ num:$('supervisor')?.value||'', nombre:getNameByNum($('supervisor')?.value||'') },
+      materiales: mats().filter(m=>(m.item||'').trim()),
+      asignados: getCat().filter(p=>p.picked).map(p=>({num:p.num, nombre:p.nombre, roles:p.roles||[]})),
+      v:'seqfix2'
+    };
   }
 
-  /* ========= AUTO-PULL CADA 30s HASTA RECIBIR ========= */
-  let autoPullTimer=null;
-  function startAutoPull(){ stopAutoPull(); autoPullTimer=setInterval(pullFromCloud, 30*1000); }
-  function stopAutoPull(){ if(autoPullTimer){ clearInterval(autoPullTimer); autoPullTimer=null; } }
+  async function copyLink(){
+    saveDraft();
+    const id = ($('num')?.value||'').trim();
+    if(!id) return alert('Falta el Nº OSI.');
+    if(!$('supervisor')?.value) return alert('Selecciona un Supervisor.');
+
+    commitSeqFromId(id); // confirma correlativo
+
+    const p=buildPayload();
+    const d=b64u.enc(JSON.stringify(p));
+    const supURL=buildSupervisorURL(d);
+
+    try{ await navigator.clipboard.writeText(supURL); toast('Enlace copiado'); }
+    catch(_){ const ta=document.createElement('textarea'); ta.value=supURL; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Enlace copiado'); }
+    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
+    startAutoPull();
+  }
+
+  function shareLink(){
+    saveDraft();
+    const id = ($('num')?.value||'').trim();
+    if(!id) return alert('Falta el Nº OSI.');
+    if(!$('supervisor')?.value) return alert('Selecciona un Supervisor.');
+
+    commitSeqFromId(id); // confirma correlativo
+
+    const p=buildPayload();
+    const d=b64u.enc(JSON.stringify(p));
+    const supURL=buildSupervisorURL(d);
+
+    const text = `OSI ${p.id} — instrucciones de hoy (${p.fecha})\nSupervisor: ${p.supervisor.nombre||p.supervisor.num}\n${supURL}`;
+    if(navigator.share){ navigator.share({title:`OSI ${p.id}`, text, url:supURL}).catch(()=>{}); }
+    else { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); }
+    histUpsert({ id:p.id, fecha:p.fecha, prioridad:p.prioridad, encargado:p.encargado?.num, supervisor:p.supervisor?.num, personal:(p.asignados||[]).length, estado:'Enviada' });
+    startAutoPull();
+  }
 
   /* ========= NUEVA OSI ========= */
   function newOSI(){
-    setSeq(currentSeq()+1); const id='OSI-'+pad(currentSeq(),5); showNum(id); setCurrentId(id);
+    const id = formatId(currentSeq()+1); // RESERVA visual, no incrementa
+    showNum(id);
+    setCurrentId(id);
+
     setMats([{item:'',cant:''}]); renderMats();
     const cat=getCat().map(p=>({...p, picked:false})); setCat(cat); showAsignados();
-    $('iniHora').value=''; $('finHora').value=''; $('desc').value=''; $('prioridad').value='Baja'; setToday();
-    $('reportStatus') && ( $('reportStatus').textContent='Sin reporte importado aún.' );
-    localStorage.removeItem(DRAFT_PREFIX+id); saveDraft();
+
+    $('iniHora').value=''; $('finHora').value=''; $('desc').value=''; $('prioridad').value='Baja';
+    setToday();
+    if($('encargado')) $('encargado').value='';
+    if($('supervisor')) $('supervisor').value='';
+
+    localStorage.removeItem(DRAFT_PREFIX+id);
+    saveDraft();
+
     histUpsert({ id, fecha:today(), prioridad:'Baja', encargado:'', supervisor:'', personal:0, estado:'Borrador' });
     stopAutoPull();
   }
@@ -404,8 +419,11 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ========= INIT ========= */
   ensureRoles();
   refreshEncSup();
+  const cid=getCurrentId();
+  showNum(cid || null);
   restoreDraft();
   renderMats();
   showAsignados();
   refreshReportStatus();
 });
+
