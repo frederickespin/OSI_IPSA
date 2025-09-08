@@ -1,14 +1,26 @@
+// Autenticación simple para Encargados (PIN local) - build iphone_ok
+(function(){
+  const PIN_KEY='enc-pin-v1';           // PIN guardado (por defecto 1234)
+  const SESSION_KEY='enc-session';      // bandera de sesión iniciada
+  const $=id=>document.getElementById(id);
 
-(function(global){
-  const SESSION_KEY='osi-session'; let cfg={ idleMs:60000, heartbeatMs:15000, endOnClose:true };
-  const now=()=>Date.now(); const save=s=>localStorage.setItem(SESSION_KEY,JSON.stringify(s));
-  function getSession(){ try{const raw=localStorage.getItem(SESSION_KEY); if(!raw) return null; const s=JSON.parse(raw);
-    if(!s.expires || now()>s.expires){ endSession(); return null; } return s; }catch(_){ return null; } }
-  function startSession(role,user,ttlMin){ const ttl=(ttlMin&&ttlMin>0)?ttlMin*60*1000:cfg.idleMs;
-    const s={role,user:user||'',created:now(),expires:now()+ttl}; save(s); sessionStorage.setItem('osi-role',role||''); sessionStorage.setItem('osi-user',user||''); touch(); return s; }
-  function touch(){ const s=getSession(); if(s){ s.expires=now()+cfg.idleMs; save(s);} }
-  function endSession(){ localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem('osi-role'); sessionStorage.removeItem('osi-user'); try{global.dispatchEvent(new CustomEvent('osi:session-ended'));}catch(_){ } }
-  function init(userCfg){ cfg=Object.assign({},cfg,userCfg||{}); ['click','keydown','mousemove','touchstart','focus','visibilitychange','scroll'].forEach(ev=>global.addEventListener(ev,()=>{ if(!document.hidden) touch(); },{passive:true}));
-    setInterval(()=>{const s=getSession(); if(s&&now()>(s.expires||0)) endSession();},5000); if(cfg.endOnClose){ global.addEventListener('beforeunload',()=>{ try{endSession();}catch(_){}});} }
-  global.OSI_AUTH={getSession,startSession,touch,endSession,init};
-})(window);
+  function getPin(){ return localStorage.getItem(PIN_KEY) || '1234'; }
+  function setPin(p){ localStorage.setItem(PIN_KEY, String(p||'').trim()); }
+  function isLogged(){ return !!sessionStorage.getItem(SESSION_KEY); }
+  function login(){ sessionStorage.setItem(SESSION_KEY,'1'); }
+  function logout(){ sessionStorage.removeItem(SESSION_KEY); }
+
+  // Exponer mínimamente
+  window.OSI_AUTH={getPin,setPin,isLogged,login,logout};
+
+  // Si estamos en index/personal/settings/historial y no hay sesión -> a login
+  const path = (location.pathname||'').toLowerCase();
+  const protectedPages = ['index.html','personal.html','settings.html','historial.html','/',''];
+  const isProtected = protectedPages.some(p => path.endsWith(p));
+  if(isProtected && !isLogged()){
+    // permitir bypass si venimos de desarrollo ?skipAuth=1
+    if(new URLSearchParams(location.search).get('skipAuth')!=='1'){
+      location.replace('login.html');
+    }
+  }
+})();

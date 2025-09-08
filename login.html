@@ -1,124 +1,35 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Acceso — Encargados OSI</title>
-<meta name="theme-color" content="#0d6efd">
+<html lang="es">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Acceso — Encargados</title>
 <style>
-:root{ --bg:#f6f7fb; --fg:#101828; --border:#e6e7ec; --primary:#0d6efd; --card:#fff; --fs:clamp(14px,3.8vw,16px) }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
-.container{max-width:520px;margin:36px auto;padding:0 12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:18px}
-h1{margin:8px 0 12px;font-size:clamp(20px,5vw,24px)}
-label{display:block;margin:8px 0 6px;font-weight:700;font-size:13px}
-input{width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:16px}
-.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:12px;padding:12px 14px;cursor:pointer}
-.btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.sub{color:#475467;font-size:13px}
-.center{display:flex;align-items:center;gap:12px}
-.logo{height:56px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0}
+.card{max-width:420px;margin:14vh auto;padding:20px;border:1px solid #e6e7ec;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06)}
+h1{margin:0 0 8px;font-size:22px}
+.sub{color:#667085;font-size:13px}
+input{width:100%;padding:12px;border:1px solid #e6e7ec;border-radius:14px;margin:10px 0 12px}
+button{width:100%;padding:12px;border:none;border-radius:12px;background:#0d6efd;color:#fff;font-weight:600}
+small a{color:#0d6efd;text-decoration:none}
 </style>
-</head><body>
-  <div class="container">
-    <div class="center">
-      <img class="logo" src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';">
-      <div>
-        <h1>Acceso de Encargados</h1>
-        <div class="sub">Protege el formulario OSI</div>
-      </div>
-    </div>
-
-    <div class="card" id="firstTime" style="display:none">
-      <h3>Crear PIN (primera vez)</h3>
-      <label>Nuevo PIN (4–6 dígitos)</label>
-      <input id="pin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••">
-      <label>Repetir PIN</label>
-      <input id="pin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••">
-      <div class="row">
-        <button id="btnCreate" class="btn btn-primary">Guardar PIN y entrar</button>
-      </div>
-    </div>
-
-    <div class="card" id="loginBox" style="display:none">
-      <h3>Ingresar</h3>
-      <label>PIN</label>
-      <input id="pinLogin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••">
-      <div class="row">
-        <button id="btnLogin" class="btn btn-primary">Entrar</button>
-        <button id="btnGoChange" class="btn">Cambiar PIN</button>
-      </div>
-    </div>
-
-    <div class="card" id="changeBox" style="display:none">
-      <h3>Cambiar PIN</h3>
-      <label>PIN actual</label>
-      <input id="oldPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6">
-      <label>Nuevo PIN (4–6 dígitos)</label>
-      <input id="newPin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6">
-      <label>Repetir nuevo PIN</label>
-      <input id="newPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6">
-      <div class="row">
-        <button id="btnChange" class="btn btn-primary">Guardar nuevo PIN</button>
-        <button id="btnCancel" class="btn">Cancelar</button>
-      </div>
-    </div>
-
-    <div class="sub" style="margin-top:10px">
-      Consejo: si olvidas el PIN y no hay otro encargado con acceso, puedes borrar los “Datos del sitio” de esta página desde el navegador para reiniciar el acceso.
-    </div>
-  </div>
-
+</head>
+<body>
+<div class="card">
+  <h1>Acceso</h1>
+  <div class="sub">Introduce tu PIN de Encargado</div>
+  <input id="pin" type="password" placeholder="PIN" inputmode="numeric" autofocus>
+  <button id="go">Entrar</button>
+  <small>¿Olvidaste el PIN? Entra con <a href="settings.html?skipAuth=1">Configuración</a> y cámbialo.</small>
+</div>
+<script src="auth.js?v=iphone_ok"></script>
 <script>
-(function(){
-  const pinKey='enc-pin';
-  const sessKey='enc-session';
   const $=id=>document.getElementById(id);
-  const hasPin=()=>!!localStorage.getItem(pinKey);
-
-  function show(which){
-    $('firstTime').style.display = which==='first'?'block':'none';
-    $('loginBox').style.display  = which==='login'?'block':'none';
-    $('changeBox').style.display = which==='change'?'block':'none';
-  }
-
-  // Rutas rápidas
-  if(!hasPin()){ show('first'); }
-  else if(location.hash==='#cambiar'){ show('change'); }
-  else { show('login'); }
-
-  // Crear PIN
-  $('btnCreate')?.addEventListener('click', ()=>{
-    const a=$('pin1').value.trim(), b=$('pin2').value.trim();
-    if(a.length<4 || a.length>6 || !/^\d+$/.test(a)) return alert('El PIN debe tener 4–6 dígitos.');
-    if(a!==b) return alert('Los PIN no coinciden.');
-    localStorage.setItem(pinKey, a);
-    sessionStorage.setItem(sessKey, String(Date.now()));
-    location.replace('index.html');
-  });
-
-  // Login
-  $('btnLogin')?.addEventListener('click', ()=>{
-    const p=$('pinLogin').value.trim();
-    if(p===localStorage.getItem(pinKey)){
-      sessionStorage.setItem(sessKey, String(Date.now()));
-      location.replace('index.html');
-    } else { alert('PIN incorrecto.'); }
-  });
-
-  // Cambiar PIN
-  $('btnGoChange')?.addEventListener('click', ()=>{ show('change'); });
-  $('btnCancel')?.addEventListener('click', ()=>{ show('login'); });
-  $('btnChange')?.addEventListener('click', ()=>{
-    const old=$('oldPin').value.trim();
-    if(old!==localStorage.getItem(pinKey)) return alert('PIN actual incorrecto.');
-    const a=$('newPin1').value.trim(), b=$('newPin2').value.trim();
-    if(a.length<4 || a.length>6 || !/^\d+$/.test(a)) return alert('El nuevo PIN debe tener 4–6 dígitos.');
-    if(a!==b) return alert('Los PIN no coinciden.');
-    localStorage.setItem(pinKey, a);
-    alert('PIN actualizado.');
-    show('login');
-  });
-})();
+  $('go').onclick=()=>{
+    const pin=$('pin').value.trim();
+    if(pin===OSI_AUTH.getPin()){ OSI_AUTH.login(); location.replace('index.html'); }
+    else alert('PIN incorrecto');
+  };
+  document.addEventListener('keydown',e=>{ if(e.key==='Enter') $('go').click(); });
 </script>
-</body></html>
+</body>
+</html>
