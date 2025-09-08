@@ -1,63 +1,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Catálogo de Personal — OSI</title>
-  <style>
-    :root{ --bg:#f7f7fb; --fg:#111; --muted:#666; --card:#fff; --border:#e4e7ec; --primary:#0d6efd; }
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f7f7fb;color:#111;}
-    .container{max-width:900px;margin:0 auto;padding:16px}
-    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px}
-    h1{font-size:20px;margin:0 0 12px 0}
-    .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-    .row>*{flex:1 1 0}
-    input,select,button{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
-    button.primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
-    table{width:100%;border-collapse:collapse}
-    th,td{border-top:1px solid var(--border);padding:8px;text-align:left}
-    th{background:#f2f4f7}
-    .muted{color:var(--muted);font-size:12px}
-    label.small{font-size:12px;color:#333;margin-right:4px}
-  </style>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Gestión de personal</title>
+<style>
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f6f7fb;margin:0}
+.container{max-width:900px;margin:18px auto;padding:0 12px}
+.card{background:#fff;border:1px solid #e6e7ec;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
+h1{margin:6px 0 8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select{width:100%;padding:11px 12px;border:1px solid #e6e7ec;border-radius:14px}
+.badge{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border:1px solid #e6e7ec;border-radius:999px;background:#fff}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #e6e7ec}
+.emp{display:flex;align-items:center;gap:8px}
+.code{font-size:12px;background:#eef2ff;border:1px solid #dfe3ff;padding:2px 8px;border-radius:999px}
+.roles{min-width:160px}
+.sm{width:22px;height:22px}
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="row">
-      <a href="index.html"><button>← Volver</button></a>
-      <a href="settings.html" style="margin-left:auto"><button>⚙️ Configuración</button></a>
+<div class="container">
+  <div class="card">
+    <h1>Gestión de personal</h1>
+    <div class="grid2">
+      <input id="num" placeholder="No. de empleado">
+      <input id="nom" placeholder="Nombre y apellido">
     </div>
-    <div class="card">
-      <h1>Catálogo de personal</h1>
-      <div class="row">
-        <input id="nombre" placeholder="Nombre y apellido">
-        <select id="rol">
-          <option value="Operario">Operario</option>
-          <option value="Supervisor">Supervisor</option>
-          <option value="Encargado">Encargado</option>
-          <option value="Administración">Administración</option>
-        </select>
-        <label class="small"><input type="checkbox" id="creador"> Creador OSI</label>
-        <label class="small"><input type="checkbox" id="activo" checked> Activo</label>
-        <button id="btnAgregar" class="primary">Agregar</button>
-      </div>
+    <div style="margin:8px 0"><label>Roles (multi-select)</label>
+      <select id="roles" multiple size="6" style="width:100%;border-radius:14px;border:1px solid #e6e7ec"></select>
+    </div>
+    <button id="add" class="badge" type="button">➕ Agregar</button>
+    <input id="q" placeholder="Buscar por nombre, número o rol" style="width:100%;margin-top:8px">
 
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Rol</th>
-            <th>Creador OSI</th>
-            <th>Activo</th>
-            <th style="width:120px">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-      <p class="muted" style="margin-top:10px">La sesión se cierra automáticamente tras 1 min de inactividad.</p>
-    </div>
+    <table style="margin-top:10px">
+      <thead><tr><th>Activo</th><th>Empleado</th><th>Roles</th><th>Acciones</th></tr></thead>
+      <tbody id="tb"></tbody>
+    </table>
   </div>
-  <script src="auth.js"></script>
-  <script src="personal.js" defer></script>
+  <a class="badge" href="index.html">← Volver al formulario</a>
+</div>
+<script src="auth.js?v=iphone_ok"></script>
+<script src="personal.js?v=iphone_ok"></script>
 </body>
 </html>

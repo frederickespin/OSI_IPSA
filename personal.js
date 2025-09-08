@@ -1,84 +1,50 @@
+(function(){
+  const ROLES_KEY='osi-roles-master-v1', CAT_KEY='osi-personal-v1';
+  const $=id=>document.getElementById(id);
+  const ls=(k,v)=>v===undefined?JSON.parse(localStorage.getItem(k)||'null'):(localStorage.setItem(k,JSON.stringify(v)),v);
 
-document.addEventListener('DOMContentLoaded', () => {
-  OSI_AUTH.init({ idleMs: 60000, heartbeatMs: 15000, endOnClose: true });
+  function roles(){ let r=ls(ROLES_KEY); if(!Array.isArray(r)||!r.length) r=['Encargado','Supervisor','Chofer','Empacador','Mecánico','Carpintero','Operario','Mantenimiento']; ls(ROLES_KEY,[...new Set(r)]); return ls(ROLES_KEY); }
+  function cat(){ return ls(CAT_KEY)||[] } function setCat(a){ ls(CAT_KEY,a) }
 
-  const $ = id => document.getElementById(id);
-  const getCat = () => { try { return JSON.parse(localStorage.getItem('osi-catalog')||'[]'); } catch(e){ return []; } };
-  const setCat = (arr) => localStorage.setItem('osi-catalog', JSON.stringify(arr));
-
-  function render(){
-    const tb = $('tbody'); tb.innerHTML = '';
-    const cat = getCat().slice().sort((a,b)=>String(a.nombre||'').localeCompare(String(b.nombre||'')));
-    cat.forEach((p, idx) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input data-k="nombre" data-idx="${idx}" value="${p.nombre||''}"></td>
-        <td>
-          <select data-k="rol" data-idx="${idx}">
-            <option ${p.rol==='Operario'?'selected':''}>Operario</option>
-            <option ${p.rol==='Supervisor'?'selected':''}>Supervisor</option>
-            <option ${p.rol==='Encargado'?'selected':''}>Encargado</option>
-            <option ${p.rol==='Administración'?'selected':''}>Administración</option>
-          </select>
-        </td>
-        <td style="text-align:center"><input type="checkbox" data-k="creadorOSI" data-idx="${idx}" ${p.creadorOSI? 'checked':''}></td>
-        <td style="text-align:center"><input type="checkbox" data-k="activo" data-idx="${idx}" ${p.activo!==false? 'checked':''}></td>
-        <td>
-          <button data-act="dup" data-idx="${idx}">Duplicar</button>
-          <button data-act="del" data-idx="${idx}">Eliminar</button>
-        </td>
-      `;
-      tb.appendChild(tr);
+  function fillRoles(sel, selected){ const set=new Set(selected||[]); sel.innerHTML=roles().map(x=>`<option value="${x}" ${set.has(x)?'selected':''}>${x}</option>`).join(''); }
+  function render(filter=''){
+    const q=(filter||'').toLowerCase(); const t=$('tb'); t.innerHTML='';
+    cat().forEach((p,i)=>{
+      if(q && !(`${p.num} ${p.nombre} ${(p.roles||[]).join(' ')}`.toLowerCase().includes(q))) return;
+      const tr=document.createElement('tr'); tr.innerHTML=`
+        <td style="text-align:center"><input class="sm" type="checkbox" data-i="${i}" data-k="activo" ${p.activo!==false?'checked':''}></td>
+        <td class="emp"><span class="code">${p.num}</span> <input class="empName" data-i="${i}" data-k="nombre" value="${p.nombre||''}" style="padding:8px;border:1px solid #e6e7ec;border-radius:10px"></td>
+        <td class="roles">${(p.roles||[]).map(r=>`<span class="code" style="background:#f0f6ff;border-color:#dbe7ff">${r}</span>`).join(' ')}</td>
+        <td><button class="badge edit" data-i="${i}" type="button">Editar roles</button> <button class="badge del" data-i="${i}" type="button">Eliminar</button></td>`;
+      t.appendChild(tr);
     });
   }
 
-  function add(){
-    const nombre = $('nombre').value.trim();
-    const rol = $('rol').value;
-    const creador = $('creador').checked;
-    const activo = $('activo').checked;
-    if(!nombre) return alert('Escribe un nombre');
-    const cat = getCat();
-    cat.push({nombre, rol, creadorOSI: creador, activo});
-    setCat(cat);
-    $('nombre').value = ''; $('creador').checked = false; $('activo').checked = true; $('rol').value='Operario';
-    render();
-  }
+  fillRoles($('roles'),[]);
+  $('add').onclick=()=>{
+    const num=$('num').value.trim(), nom=$('nom').value.trim(); const rs=[...$('roles').selectedOptions].map(o=>o.value);
+    if(!num||!nom||rs.length===0) return alert('Completa No., Nombre y al menos un rol.');
+    const c=cat(); if(c.some(x=>x.num===num)) return alert('No. ya existe');
+    c.push({num, nombre:nom, roles:rs, activo:true});
+    setCat(c); $('num').value=''; $('nom').value=''; [...$('roles').options].forEach(o=>o.selected=false); render();
+  };
+  $('q').oninput=e=>render(e.target.value);
 
-  document.addEventListener('input', (e) => {
-    const k = e.target.dataset.k;
-    const idx = +e.target.dataset.idx;
-    if(k===undefined || isNaN(idx)) return;
-    const cat = getCat();
-    if(!cat[idx]) return;
-    if(e.target.type === 'checkbox'){
-      cat[idx][k] = e.target.checked;
-    } else {
-      cat[idx][k] = e.target.value;
-    }
-    setCat(cat);
-  });
-
-  document.addEventListener('click', (e) => {
-    const act = e.target.dataset.act;
-    const idx = +e.target.dataset.idx;
-    if(act==='del'){
-      const cat = getCat();
-      if(!cat[idx]) return;
-      if(!confirm('¿Eliminar a ' + (cat[idx].nombre||'') + '?')) return;
-      cat.splice(idx,1); setCat(cat); render();
-    } else if(act==='dup'){
-      const cat = getCat(); if(!cat[idx]) return;
-      const p = Object.assign({}, cat[idx], {nombre: (cat[idx].nombre||'') + ' (copia)'});
-      cat.push(p); setCat(cat); render();
+  document.addEventListener('click',e=>{
+    if(e.target.classList.contains('del')){
+      const i=+e.target.dataset.i; const c=cat(); c.splice(i,1); setCat(c); render($('q').value);
+    }else if(e.target.classList.contains('edit')){
+      const i=+e.target.dataset.i; const c=cat(); const cur=new Set(c[i].roles||[]); const opts=roles().map(r=>`${cur.has(r)?'☑':'☐'} ${r}`).join('\n');
+      const pick=prompt('Roles actuales (marca manualmente y separa por comas):\n'+opts, (c[i].roles||[]).join(', '));
+      if(pick!==null){ c[i].roles=pick.split(',').map(s=>s.trim()).filter(Boolean); setCat(c); render($('q').value); }
     }
   });
-
-  // Si la sesión termina, podemos redirigir
-  window.addEventListener('osi:session-ended', ()=>{
-    alert('Sesión finalizada por inactividad.');
-    location.href = 'index.html';
+  document.addEventListener('input',e=>{
+    const i=e.target.dataset.i; const k=e.target.dataset.k; if(i===undefined||!k) return;
+    const c=cat(); if(!c[i]) return;
+    if(e.target.type==='checkbox') c[i][k]=e.target.checked; else c[i][k]=e.target.value;
+    setCat(c);
   });
 
   render();
-});
+})();

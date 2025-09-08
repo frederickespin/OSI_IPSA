@@ -1,14 +1,16 @@
-
-const CACHE="osi-cache-v22s7";
+const CACHE='osi-ipssa-v1';
 const ASSETS=[
-  "./","./index.html?v=22s7","./app.js?v=22s7","./auth.js?v=22s7","./settings.html?v=22s7","./settings.js?v=22s7","./manifest.webmanifest",
-  "./icons/icon-192.png","./icons/icon-512.png","./icons/icon-180.png","./icons/icon-96.png","./icons/icon-48.png","./icons/icon-32.png","./icons/icon-16.png"
+  './','index.html','login.html','settings.html','personal.html','historial.html',
+  'app.js','auth.js','settings.js','personal.js','historial.js',
+  'supervisor.html','supervisor.js','manifest.webmanifest','logo.png'
 ];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));self.skipWaiting()});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener("fetch",e=>{
-  const url=new URL(e.request.url);
-  if(url.origin===self.location.origin&&(url.pathname.endsWith(".html")||url.pathname.endsWith(".js"))) url.searchParams.set("v","22s7");
-  const req=new Request(url,{cache:"no-store"});
-  e.respondWith(caches.match(req).then(c=>c||fetch(req).then(r=>{if(r&&r.ok)caches.open(CACHE).then(cc=>cc.put(req,r.clone()));return r}).catch(()=>c)));
+self.addEventListener('install',e=>{ e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))); });
+self.addEventListener('activate',e=>{ e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });
+self.addEventListener('fetch',e=>{
+  const req=e.request;
+  e.respondWith(caches.match(req).then(cached=> cached || fetch(req).then(r=>{
+    if(req.method==='GET' && r.status===200 && !req.url.includes('chrome-extension')) {
+      const clone=r.clone(); caches.open(CACHE).then(c=>c.put(req,clone)); }
+    return r;
+  }).catch(()=>cached)));
 });

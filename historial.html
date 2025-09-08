@@ -1,54 +1,27 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Historial de OSI</title>
-<meta name="theme-color" content="#0d6efd">
+<html lang="es">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Historial OSI</title>
 <style>
-:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --card:#fff }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-.container{max-width:1040px;margin:18px auto;padding:0 12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px}
-h1{margin:0 0 8px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-input,select{padding:10px;border:1px solid var(--border);border-radius:10px}
-.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
-.btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#f6f7fb;margin:0}
+.container{max-width:900px;margin:18px auto;padding:0 12px}
+.card{background:#fff;border:1px solid #e6e7ec;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px}
 table{width:100%;border-collapse:collapse}
-th,td{border-bottom:1px solid #eef0f3;padding:10px;text-align:left;font-size:14px}
-.badge{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
-.state{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:700}
-.small{font-size:12px;color:#667085}
+th,td{padding:8px;border-bottom:1px solid #e6e7ec}
+.badge{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border:1px solid #e6e7ec;border-radius:999px;background:#fff}
 </style>
-<script>
-(function(){ const pin = localStorage.getItem('enc-pin'); const sess= sessionStorage.getItem('enc-session'); if(!pin || !sess){ location.replace('login.html'); }})();
-</script>
-</head><body>
-  <div class="container">
-    <div class="card">
-      <h1>Historial de OSI</h1>
-      <div class="toolbar">
-        <input id="q" placeholder="Buscar Nº OSI, supervisor, encargado…">
-        <select id="fEstado">
-          <option value="">Todos</option>
-          <option>Con reporte</option>
-          <option>Enviada</option>
-          <option>Borrador</option>
-        </select>
-        <button id="exportCSV" class="btn">Exportar CSV</button>
-        <a href="index.html" class="btn">⬅ Volver</a>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Nº OSI</th><th>Fecha</th><th>Prioridad</th><th>Encargado</th><th>Supervisor</th><th>Personal</th><th>Estado</th><th>Acciones</th>
-          </tr></thead>
-          <tbody id="tb"></tbody>
-        </table>
-      </div>
-      <div class="small" style="margin-top:8px">Consejo: al abrir una OSI desde aquí, volverás al formulario con ese Nº cargado.</div>
-    </div>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h1>Historial</h1>
+    <table><thead><tr><th>OSI</th><th>Fecha</th><th>Prioridad</th><th>Encargado</th><th>Supervisor</th><th>Personal</th><th>Estado</th><th>Acción</th></tr></thead>
+    <tbody id="tb"></tbody></table>
   </div>
-
-  <script src="historial.js?v=v1w"></script>
-</body></html>
+  <a class="badge" href="index.html">← Volver</a>
+</div>
+<script src="auth.js?v=iphone_ok"></script>
+<script src="historial.js?v=iphone_ok"></script>
+</body>
+</html>

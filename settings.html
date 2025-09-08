@@ -1,68 +1,48 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Configuración — Roles y PIN</title>
-<meta name="theme-color" content="#0d6efd">
+<html lang="es">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Configuración</title>
 <style>
-:root{ --bg:#f6f7fb; --fg:#101828; --muted:#667085; --border:#e6e7ec; --primary:#0d6efd; --card:#fff }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-.container{max-width:920px;margin:18px auto;padding:0 12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:14px}
-h1{margin:0 0 8px;font-size:clamp(20px,5vw,24px)}
-h2{margin:2px 0 10px;font-size:clamp(18px,5vw,20px)}
-table{width:100%;border-collapse:collapse}
-th,td{border-bottom:1px solid #eef0f3;padding:10px;text-align:left}
-.badge{display:inline-flex;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
-.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f6f7fb;margin:0}
+.container{max-width:720px;margin:18px auto;padding:0 12px}
+.card{background:#fff;border:1px solid #e6e7ec;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
+h1{margin:6px 0 8px}
+.field label{display:block;font-size:12px;color:#344054;margin-bottom:6px;font-weight:700}
+input{width:100%;padding:11px 12px;border:1px solid #e6e7ec;border-radius:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid #e6e7ec;background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
 .btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
-input{padding:10px;border:1px solid var(--border);border-radius:10px}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-.small{font-size:12px;color:#475467}
-.top{display:flex;align-items:center;gap:10px}
-.logo{height:52px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
+.tip{font-size:12px;color:#667085}
 </style>
-<script>
-(function(){ const pin = localStorage.getItem('enc-pin'); const sess= sessionStorage.getItem('enc-session'); if(!pin || !sess){ location.replace('login.html'); }})();
-</script>
-</head><body>
-  <div class="container">
-    <div class="top">
-      <img class="logo" src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';">
-      <h1>Configuración</h1>
-    </div>
+</head>
+<body>
+<div class="container">
+  <div class="card"><h1>Configuración</h1>
+    <div class="field"><label>Cambiar PIN de Encargado</label><div class="row">
+      <input id="pinNew" placeholder="Nuevo PIN" inputmode="numeric" style="flex:1 1 220px">
+      <button id="savePin" class="btn btn-primary">Guardar PIN</button>
+    </div><div class="tip">Si olvidas el PIN, puedes entrar a esta pantalla con <code>?skipAuth=1</code> y establecer uno nuevo.</div></div>
 
-    <div class="card">
-      <h2>Roles del sistema</h2>
-      <div class="row" style="margin-bottom:10px">
-        <input id="newRole" placeholder="Nuevo rol (ej. Mantenimiento)">
-        <button id="btnAddRole" class="btn btn-primary">Añadir</button>
-        <span class="small">“Encargado” y “Supervisor” son fijos.</span>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Rol</th><th>Acciones</th></tr></thead>
-          <tbody id="tbRoles"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Cambiar PIN del Encargado</h2>
+    <div class="field"><label>Instalar app</label>
       <div class="row">
-        <input id="oldPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="PIN actual">
-        <input id="newPin1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Nuevo PIN (4–6 dígitos)">
-        <input id="newPin2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Repetir nuevo PIN">
-        <button id="btnChange" class="btn btn-primary">Guardar</button>
+        <button id="installBtn" class="btn">Instalar PWA</button>
+        <button id="shareSite" class="btn">Compartir enlace del formulario</button>
+        <button id="copySite" class="btn">Copiar enlace</button>
       </div>
-      <div class="small" style="margin-top:6px">Si olvidas el PIN, borra “Datos del sitio” en el navegador para reiniciar el acceso.</div>
     </div>
 
-    <div class="row">
-      <a href="index.html" class="btn">⬅ Volver al formulario</a>
-      <button id="logout" class="btn">Cerrar sesión</button>
+    <div class="field"><label>Gestión de personal</label>
+      <a class="btn" href="personal.html">Abrir gestión en nueva pantalla</a>
+    </div>
+
+    <div class="field"><label>Historial</label>
+      <a class="btn" href="historial.html">Abrir historial</a>
     </div>
   </div>
-
-  <script src="settings.js?v=v1u"></script>
-</body></html>
+  <a class="btn" href="index.html">← Volver</a>
+</div>
+<script src="auth.js?v=iphone_ok"></script>
+<script src="settings.js?v=iphone_ok"></script>
+</body>
+</html>
