@@ -20,29 +20,22 @@ h1{margin:0;font-size:clamp(18px,5vw,22px);line-height:1.15}
 .top-actions{display:flex;gap:8px;align-items:center}
 .btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
 .btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
-
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:520px){ .grid2{grid-template-columns:1fr} }
-
 .field label{display:block;font-size:12px;color:#344054;margin-bottom:6px;font-weight:700}
 input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:#fff;font-size:var(--fs)}
 textarea{min-height:120px;resize:vertical}
-
 .card-inline{padding:12px}
 .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:#fff}
 .badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
-
 .table{width:100%;border-collapse:separate;border-spacing:0 8px}
 .table th,.table td{padding:8px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:#fff}
 .table th:first-child,.table td:first-child{border-left:1px solid var(--border);border-radius:10px 0 0 10px}
 .table th:last-child,.table td:last-child{border-right:1px solid var(--border);border-radius:0 10px 10px 0}
 .tbl-input{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:12px;background:#fff}
-
 .asignados ul{margin:6px 0 0 18px;padding:0}
-.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#101828;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}
-.toast.show{opacity:1}
 
-/* Modal selector de personal */
+/* MODAL */
 .modal{position:fixed;inset:0;background:rgba(16,24,40,.38);display:none;align-items:flex-end}
 .modal>div{background:#fff;border-radius:16px 16px 0 0;max-height:86vh;overflow:auto;padding:14px;width:100%}
 table.pick{width:100%;border-collapse:collapse}
@@ -52,14 +45,13 @@ table.pick td,table.pick th{padding:8px;border-bottom:1px solid var(--border)}
 .col-roles{min-width:140px}
 .sm{width:22px;height:22px}
 
-/* Barra inferior uniforme */
+/* BOTTOM NAV */
 .bottomnav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);display:flex;gap:0}
 .bottomnav a,.bottomnav button{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 0;border:0;background:transparent;color:#344054;text-decoration:none}
 .bottomnav small{line-height:1;text-decoration:none}
 .bottomnav svg{display:block}
-
-/* Reduce encimado de selects en iOS */
-select{background-clip:padding-box}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#101828;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -70,7 +62,7 @@ select{background-clip:padding-box}
         <img src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png'">
         <div>
           <h1>ORDEN DE SERVICIO<br>INTERNA</h1>
-          <div class="sub">Gestión de personal • Build iphone_ok</div>
+          <div class="sub">Gestión de personal • Build fix4</div>
         </div>
       </div>
       <div class="top-actions">
@@ -89,15 +81,8 @@ select{background-clip:padding-box}
       </div>
     </div>
 
-    <div class="field">
-      <label>Encargado</label>
-      <select id="encargado"></select>
-    </div>
-
-    <div class="field">
-      <label>Supervisor</label>
-      <select id="supervisor"></select>
-    </div>
+    <div class="field"><label>Encargado</label><select id="encargado"></select></div>
+    <div class="field"><label>Supervisor</label><select id="supervisor"></select></div>
 
     <div class="card card-inline asignados" style="margin-top:10px">
       <div class="field">
@@ -113,30 +98,18 @@ select{background-clip:padding-box}
       <textarea id="desc" placeholder="Describe claramente la tarea a realizar, restricciones, riesgos e instrucciones específicas."></textarea>
     </div>
 
-    <div class="field">
-      <label>Prioridad</label>
-      <select id="prioridad">
-        <option>Baja</option><option>Media</option><option>Alta</option>
-      </select>
+    <div class="field"><label>Prioridad</label>
+      <select id="prioridad"><option>Baja</option><option>Media</option><option>Alta</option></select>
     </div>
 
     <div class="grid2">
-      <div class="field">
-        <label>Inicio programado (hora)</label>
-        <input id="iniHora" type="time" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label>Fin programado (hora)</label>
-        <input id="finHora" type="time" inputmode="numeric">
-      </div>
+      <div class="field"><label>Inicio programado (hora)</label><input id="iniHora" type="time"></div>
+      <div class="field"><label>Fin programado (hora)</label><input id="finHora" type="time"></div>
     </div>
 
     <div class="card" style="margin-top:10px">
       <h3 style="margin:0 0 8px">Materiales / Herramientas</h3>
-      <table class="table">
-        <thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead>
-        <tbody id="tbMat"></tbody>
-      </table>
+      <table class="table"><thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead><tbody id="tbMat"></tbody></table>
       <button id="matAdd" class="badge" type="button">➕ Agregar ítem</button>
     </div>
 
@@ -149,7 +122,7 @@ select{background-clip:padding-box}
   </div>
 </div>
 
-<!-- Modal de selección de personal -->
+<!-- Modal selección de personal -->
 <div class="modal" id="modalGestion"><div>
   <h3 style="margin:6px 0 10px">Gestión de personal</h3>
   <div class="grid2">
@@ -173,7 +146,7 @@ select{background-clip:padding-box}
   </div>
 </div></div>
 
-<!-- Barra inferior uniforme -->
+<!-- Barra inferior -->
 <div class="bottomnav">
   <button id="navCopy" title="Copiar enlace">
     <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h3v2h-3a2.1 2.1 0 1 0 0 4.2h3v2h-3A4.1 4.1 0 0 1 3.9 12Zm6-1h4v2h-4v-2Zm6.1-3.1a4.1 4.1 0 0 1 0 8.2h-3v-2h3a2.1 2.1 0 1 0 0-4.2h-3v-2h3Z"/></svg>
@@ -195,20 +168,15 @@ select{background-clip:padding-box}
 
 <div id="toast" class="toast"></div>
 
-<script src="auth.js?v=fix2"></script>
-<script src="app.js?v=fix2"></script>
 <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js?v=fix2').then(reg => {
-      // si ya hay uno esperando, actívalo y recarga
-      if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'installed') location.reload();
-        });
-      });
-    }).catch(()=>{});
-  }
+/* Modo DEV: si abres con ?dev=1, desregistra el SW para evitar caché mientras pruebas */
+if (location.search.includes('dev=1') && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()));
+  caches && caches.keys && caches.keys().then(ks => ks.forEach(k => caches.delete(k)));
+}
 </script>
+<script src="auth.js?v=fix4"></script>
+<script src="app_vfix4.js?v=fix4"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
+</body>
+</html>
