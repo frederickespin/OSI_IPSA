@@ -1,91 +1,140 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Orden de Servicio Interna</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d6efd"/>
 <style>
-:root{--bg:#f6f7fb;--fg:#101828;--muted:#667085;--border:#e6e7ec;--primary:#0d6efd;--card:#fff;--fs:clamp(13px,3.6vw,15px);}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
-.container{max-width:920px;margin:18px auto;padding:0 12px 84px}
+:root{--bg:#f6f7fb;--fg:#101828;--muted:#667085;--border:#e6e7ec;--primary:#0d6efd;--card:#fff;--fs:clamp(13px,3.6vw,15px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:var(--fs)}
+.container{max-width:920px;margin:18px auto;padding:0 12px 96px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.06);padding:16px;margin-bottom:12px}
-.header{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.header{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.head-left{display:flex;gap:12px;align-items:center}
 .header img{height:52px;border:1px solid var(--border);border-radius:10px;background:#fff;padding:4px}
-h1{margin:0;font-size:clamp(18px,5vw,22px)}
+h1{margin:0;font-size:clamp(18px,5vw,22px);line-height:1.15}
 .sub{color:var(--muted);font-size:12px}
+.top-actions{display:flex;gap:8px;align-items:center}
+.btn{appearance:none;border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer}
+.btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
+
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){ .grid2{grid-template-columns:1fr} }
+
 .field label{display:block;font-size:12px;color:#344054;margin-bottom:6px;font-weight:700}
 input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:14px;background:#fff;font-size:var(--fs)}
 textarea{min-height:120px;resize:vertical}
+
+.card-inline{padding:12px}
+.badge{display:inline-flex;gap:6px;align-items:center;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:#fff}
+.badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+
 .table{width:100%;border-collapse:separate;border-spacing:0 8px}
 .table th,.table td{padding:8px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:#fff}
 .table th:first-child,.table td:first-child{border-left:1px solid var(--border);border-radius:10px 0 0 10px}
 .table th:last-child,.table td:last-child{border-right:1px solid var(--border);border-radius:0 10px 10px 0}
 .tbl-input{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:12px;background:#fff}
-.badge{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border:1px solid var(--border);border-radius:999px;background:#fff}
-.badge-role{border-color:#dbe7ff;background:#f0f6ff;color:#0b5ed7;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
-.asignados ul{margin:6px 0 0 0;padding-left:18px}
-.bottomnav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px}
-.iconbtn{appearance:none;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:6px;color:#344054}
-.iconbtn svg{display:block}
-.fab{position:fixed;right:16px;bottom:68px;background:#0d6efd;color:#fff;border:none;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 24px rgba(13,110,253,.35)}
-.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:#101828;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}
+
+.asignados ul{margin:6px 0 0 18px;padding:0}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#101828;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}
 .toast.show{opacity:1}
+
+/* Modal selector de personal */
 .modal{position:fixed;inset:0;background:rgba(16,24,40,.38);display:none;align-items:flex-end}
 .modal>div{background:#fff;border-radius:16px 16px 0 0;max-height:86vh;overflow:auto;padding:14px;width:100%}
 table.pick{width:100%;border-collapse:collapse}
-table.pick td{padding:8px;border-bottom:1px solid var(--border)}
+table.pick td,table.pick th{padding:8px;border-bottom:1px solid var(--border)}
 .empCell{display:flex;align-items:center;gap:8px}
 .empCode{font-size:12px;background:#eef2ff;border:1px solid #dfe3ff;padding:2px 8px;border-radius:999px}
 .col-roles{min-width:140px}
 .sm{width:22px;height:22px}
+
+/* Barra inferior uniforme */
+.bottomnav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--border);display:flex;gap:0}
+.bottomnav a,.bottomnav button{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px 0;border:0;background:transparent;color:#344054;text-decoration:none}
+.bottomnav small{line-height:1;text-decoration:none}
+.bottomnav svg{display:block}
+
+/* Reduce encimado de selects en iOS */
+select{background-clip:padding-box}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="card">
     <div class="header">
-      <img src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png';">
-      <div>
-        <h1>ORDEN DE SERVICIO INTERNA</h1>
-        <div class="sub">Gestión de personal • Build iphone_ok</div>
+      <div class="head-left">
+        <img src="logo.png" alt="Logo" onerror="this.onerror=null;this.src='logo_ipsa_transparente.png'">
+        <div>
+          <h1>ORDEN DE SERVICIO<br>INTERNA</h1>
+          <div class="sub">Gestión de personal • Build iphone_ok</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="newOsiBtn" class="btn btn-primary">➕ Nueva OSI</button>
       </div>
     </div>
 
     <div class="grid2">
-      <div class="field"><label>Fecha (día en curso)</label><input id="fecha" type="date"></div>
-      <div class="field"><label>Nº OSI</label><input id="num" type="text" readonly></div>
+      <div class="field">
+        <label>Fecha (día en curso)</label>
+        <input id="fecha" type="date">
+      </div>
+      <div class="field">
+        <label>Nº OSI</label>
+        <input id="num" type="text" readonly>
+      </div>
     </div>
 
-    <div class="field"><label>Encargado</label><select id="encargado"></select></div>
-    <div class="field"><label>Supervisor</label><select id="supervisor"></select></div>
+    <div class="field">
+      <label>Encargado</label>
+      <select id="encargado"></select>
+    </div>
 
-    <div class="card asignados" style="margin-top:10px">
-      <div class="field"><label>Personal asignado (Operarios)</label>
+    <div class="field">
+      <label>Supervisor</label>
+      <select id="supervisor"></select>
+    </div>
+
+    <div class="card card-inline asignados" style="margin-top:10px">
+      <div class="field">
+        <label>Personal asignado (Operarios)</label>
         <button id="navGestion" class="badge" type="button">👥 Seleccionar personal</button>
         <div id="asignadosResumen" class="sub" style="margin-top:6px"></div>
         <ul id="asignadosLista"></ul>
       </div>
     </div>
 
-    <div class="field"><label>Descripción / Instrucciones</label>
+    <div class="field">
+      <label>Descripción / Instrucciones</label>
       <textarea id="desc" placeholder="Describe claramente la tarea a realizar, restricciones, riesgos e instrucciones específicas."></textarea>
     </div>
 
-    <div class="field"><label>Prioridad</label>
-      <select id="prioridad"><option>Baja</option><option>Media</option><option>Alta</option></select>
+    <div class="field">
+      <label>Prioridad</label>
+      <select id="prioridad">
+        <option>Baja</option><option>Media</option><option>Alta</option>
+      </select>
     </div>
 
     <div class="grid2">
-      <div class="field"><label>Inicio programado (hora)</label><input id="iniHora" type="time"></div>
-      <div class="field"><label>Fin programado (hora)</label><input id="finHora" type="time"></div>
+      <div class="field">
+        <label>Inicio programado (hora)</label>
+        <input id="iniHora" type="time" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Fin programado (hora)</label>
+        <input id="finHora" type="time" inputmode="numeric">
+      </div>
     </div>
 
     <div class="card" style="margin-top:10px">
-      <h3 style="margin:0 0 8px 0">Materiales / Herramientas</h3>
-      <table class="table"><thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead>
+      <h3 style="margin:0 0 8px">Materiales / Herramientas</h3>
+      <table class="table">
+        <thead><tr><th>Ítem</th><th style="width:160px">Cantidad</th></tr></thead>
         <tbody id="tbMat"></tbody>
       </table>
       <button id="matAdd" class="badge" type="button">➕ Agregar ítem</button>
@@ -100,7 +149,7 @@ table.pick td{padding:8px;border-bottom:1px solid var(--border)}
   </div>
 </div>
 
-<!-- modal gestión personal -->
+<!-- Modal de selección de personal -->
 <div class="modal" id="modalGestion"><div>
   <h3 style="margin:6px 0 10px">Gestión de personal</h3>
   <div class="grid2">
@@ -108,10 +157,10 @@ table.pick td{padding:8px;border-bottom:1px solid var(--border)}
     <input id="empNombre" placeholder="Nombre y apellido">
   </div>
   <div class="field"><label>Roles del empleado (multi-select)</label>
-    <select id="empRolesSel" multiple size="5" style="width:100%;border-radius:14px;border:1px solid var(--border)"></select>
+    <select id="empRolesSel" multiple size="6" style="width:100%;border-radius:14px;border:1px solid var(--border)"></select>
   </div>
   <button id="empAgregar" class="badge" type="button">➕ Agregar</button>
-  <input id="busca" placeholder="Buscar en personal (nombre, número o rol)" style="margin-top:8px">
+  <input id="busca" placeholder="Buscar en personal (nombre, número o rol)" style="margin-top:8px;width:100%">
 
   <table class="pick" style="margin-top:10px">
     <thead><tr><th>Asignar</th><th>Empleado</th><th>Roles</th><th>Activo</th></tr></thead>
@@ -124,20 +173,31 @@ table.pick td{padding:8px;border-bottom:1px solid var(--border)}
   </div>
 </div></div>
 
-<!-- barra fija inferior -->
+<!-- Barra inferior uniforme -->
 <div class="bottomnav">
-  <button id="navCopy"  class="iconbtn" title="Copiar enlace"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h3v2h-3a2.1 2.1 0 1 0 0 4.2h3v2h-3A4.1 4.1 0 0 1 3.9 12Zm6-1h4v2h-4v-2Zm6.1-3.1a4.1 4.1 0 0 1 0 8.2h-3v-2h3a2.1 2.1 0 1 0 0-4.2h-3v-2h3Z"/></svg><small>Copiar</small></button>
-  <button id="navShare" class="iconbtn" title="Compartir"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7-4.06A3 3 0 1 0 15 5a3 3 0 0 0 .04.48l-7 4.06a3 3 0 1 0 0 4.92l7.08 4.11c-.02.12-.04.24-.04.37a3 3 0 1 0 3-3Z"/></svg><small>Compartir</small></button>
-  <a class="iconbtn" href="personal.html" title="Personal"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6Z"/></svg><small>Personal</small></a>
-  <a class="iconbtn" href="historial.html" title="Historial"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8v5l4 2 .8-1.8-3.3-1.6V8h-1.5ZM12 2A10 10 0 1 0 22 12 10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg><small>Historial</small></a>
-  <a class="iconbtn" href="settings.html" title="Configuración"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m11 2 1 .01 1.2 2.5a7.8 7.8 0 0 1 1.9.8l2.6-1L19 6.2a7.8 7.8 0 0 1 0 1.6l2.6 1-1.9 1.7a7.8 7.8 0 0 1-.8 1.9L21 14l-2.2 1.3a7.8 7.8 0 0 1-1.6 1.6L18 20l-2.2-.8a7.8 7.8 0 0 1-1.9.8L12 22l-1.7-2.2a7.8 7.8 0 0 1-1.9-.8L6.2 20l.8-2.2a7.8 7.8 0 0 1-1.6-1.6L2 14l2.2-1.3a7.8 7.8 0 0 1-.8-1.9L2 8l2.2-.8a7.8 7.8 0 0 1 .8-1.9L4 3l2.2.8a7.8 7.8 0 0 1 1.9-.8L11 2Zm1 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg><small>Config</small></a>
+  <button id="navCopy" title="Copiar enlace">
+    <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M3.9 12a4.1 4.1 0 0 1 4.1-4.1h3v2h-3a2.1 2.1 0 1 0 0 4.2h3v2h-3A4.1 4.1 0 0 1 3.9 12Zm6-1h4v2h-4v-2Zm6.1-3.1a4.1 4.1 0 0 1 0 8.2h-3v-2h3a2.1 2.1 0 1 0 0-4.2h-3v-2h3Z"/></svg>
+    <small>Copiar</small>
+  </button>
+  <button id="navShare" title="Compartir">
+    <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7-4.06A3 3 0 1 0 15 5a3 3 0 0 0 .04.48l-7 4.06a3 3 0 1 0 0 4.92l7.08 4.11c-.02.12-.04.24-.04.37a3 3 0 1 0 3-3Z"/></svg>
+    <small>Compartir</small>
+  </button>
+  <a href="historial.html" title="Historial">
+    <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 8v5l4 2 .8-1.8-3.3-1.6V8h-1.5ZM12 2A10 10 0 1 0 22 12 10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Z"/></svg>
+    <small>Historial</small>
+  </a>
+  <a href="settings.html" title="Configuración">
+    <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m11 2 1 .01 1.2 2.5a7.8 7.8 0 0 1 1.9.8l2.6-1L19 6.2a7.8 7.8 0 0 1 0 1.6l2.6 1-1.9 1.7a7.8 7.8 0 0 1-.8 1.9L21 14l-2.2 1.3a7.8 7.8 0 0 1-1.6 1.6L18 20l-2.2-.8a7.8 7.8 0 0 1-1.9.8L12 22l-1.7-2.2a7.8 7.8 0 0 1-1.9-.8L6.2 20l.8-2.2a7.8 7.8 0 0 1-1.6-1.6L2 14l2.2-1.3a7.8 7.8 0 0 1-.8-1.9L2 8l2.2-.8a7.8 7.8 0 0 1 .8-1.9L4 3l2.2.8a7.8 7.8 0 0 1 1.9-.8L11 2Zm1 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/></svg>
+    <small>Config</small>
+  </a>
 </div>
 
-<button id="newOsiBtn" class="fab" type="button">➕ Nueva OSI</button>
 <div id="toast" class="toast"></div>
 
 <script src="auth.js?v=iphone_ok"></script>
-<script src="app.js?v=iphone_ok"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+<script src="app.js?v=fix1"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
 </body>
 </html>
+
