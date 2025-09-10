@@ -195,9 +195,20 @@ select{background-clip:padding-box}
 
 <div id="toast" class="toast"></div>
 
-<script src="auth.js?v=iphone_ok"></script>
-<script src="app.js?v=fix1"></script>
-<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
-</body>
-</html>
-
+<script src="auth.js?v=fix2"></script>
+<script src="app.js?v=fix2"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js?v=fix2').then(reg => {
+      // si ya hay uno esperando, actívalo y recarga
+      if (reg.waiting) { reg.waiting.postMessage({type:'SKIP_WAITING'}); }
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed') location.reload();
+        });
+      });
+    }).catch(()=>{});
+  }
+</script>
